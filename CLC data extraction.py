@@ -32,51 +32,80 @@ DKLand_subtracted_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano
 # Load the CLC vector layer into a GeoDataFrame
 CLC_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC\Results\U2018_CLC2018_V2020_20u1.shp')
 
-# Urban Areas Filtering and Merging
-filtered_CLC_gdf = CLC_gdf[CLC_gdf['Code_18'].astype(str).str.startswith('1')]
-filtered_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas.shp')
-merged_geometry = filtered_CLC_gdf.unary_union
-merged_CLC_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_CLC_gdf.crs)
-merged_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas_Merged.shp')
+#Definition of a function for filtering and merging the different aggregated CLC classes
 
-# Agricultural Areas Filtering and Merging
-filtered_CLC_gdf = CLC_gdf[CLC_gdf['Code_18'].astype(str).str.startswith('2')]
-filtered_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas.shp')
-merged_geometry = filtered_CLC_gdf.unary_union
-merged_CLC_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_CLC_gdf.crs)
-merged_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp')
+def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path):
+    """
+    Filters a GeoDataFrame based on a given attribute and value prefix, merges the geometries,
+    saves both filtered and merged layers as shapefiles, and returns only the merged GeoDataFrame.
 
-# Forest Areas Filtering and Merging
-filtered_CLC_gdf = CLC_gdf[CLC_gdf['Code_18'].astype(str).str.startswith('31')]
-filtered_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas.shp')
-merged_geometry = filtered_CLC_gdf.unary_union
-merged_CLC_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_CLC_gdf.crs)
-merged_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas_Merged.shp')
+    Parameters:
+        gdf (GeoDataFrame): The input GeoDataFrame to filter.
+        attribute (str): The name of the attribute to filter on.
+        value_prefix (str): The prefix of the attribute value to filter by.
+        filtered_path (str): The file path to save the filtered shapefile.
+        merged_path (str): The file path to save the merged shapefile.
 
-# Other Nature Areas with vegetation Filtering and Merging
-filtered_CLC_gdf = CLC_gdf[CLC_gdf['Code_18'].astype(str).str.startswith('32')]
-filtered_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas.shp')
-merged_geometry = filtered_CLC_gdf.unary_union
-merged_CLC_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_CLC_gdf.crs)
-merged_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas_Merged.shp')
+    Returns:
+        GeoDataFrame: The merged GeoDataFrame containing the combined geometry.
+    """
+    # Step 1: Filter the GeoDataFrame based on the attribute's value prefix
+    filtered_gdf = gdf[gdf[attribute].astype(str).str.startswith(value_prefix)]
+    
+    # Step 2: Save the filtered GeoDataFrame to the specified path
+    filtered_gdf.to_file(filtered_path)
+    
+    # Step 3: Merge geometries in the filtered GeoDataFrame
+    merged_geometry = filtered_gdf.unary_union
+    merged_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_gdf.crs)
+    
+    # Step 4: Save the merged GeoDataFrame to the specified path
+    merged_gdf.to_file(merged_path)
+    
+    # Return the merged GeoDataFrame directly
+    return merged_gdf
 
-# Other Nature Areas without vegetation Filtering and Merging
-filtered_CLC_gdf = CLC_gdf[CLC_gdf['Code_18'].astype(str).str.startswith('33')]
-filtered_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas.shp')
-merged_geometry = filtered_CLC_gdf.unary_union
-merged_CLC_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_CLC_gdf.crs)
-merged_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas_Merged.shp')
 
-# Other Nature Areas with water Filtering and Merging
-filtered_CLC_gdf = CLC_gdf[CLC_gdf['Code_18'].astype(str).str.startswith('4')]
-filtered_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas.shp')
-merged_geometry = filtered_CLC_gdf.unary_union
-merged_CLC_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_CLC_gdf.crs)
-merged_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas_Merged.shp')
+# Definition of paths to save each CLC aggregation cathegory output
+urban_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas.shp'
+urban_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas_Merged.shp'
 
-#Water Bodies Areas Filtering and Merging
-filtered_CLC_gdf = CLC_gdf[CLC_gdf['Code_18'].astype(str).str.startswith('5')]
-filtered_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas.shp')
-merged_geometry = filtered_CLC_gdf.unary_union
-merged_CLC_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_CLC_gdf.crs)
-merged_CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas_Merged.shp')
+agricultural_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas.shp'
+agricultural_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
+
+forest_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas.shp'
+forest_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas_Merged.shp'
+
+on_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas.shp'
+on_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas_Merged.shp'
+
+on_no_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas.shp'
+on_no_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas_Merged.shp'
+
+on_water_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas.shp'
+on_water_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas_Merged.shp'
+
+water_bodies_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas.shp'
+water_bodies_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas_Merged.shp'
+
+# Run filtering and merging for each category
+# Urban Areas
+CLC_urban_gdf = filter_merge_save(CLC_gdf, 'Code_18', '1', urban_filtered_path, urban_merged_path)
+
+# Agricultural Areas
+CLC_agricultural_gdf = filter_merge_save(CLC_gdf, 'Code_18', '2', agricultural_filtered_path, agricultural_merged_path)
+
+# Forest Areas
+CLC_forest_gdf = filter_merge_save(CLC_gdf, 'Code_18', '31', forest_filtered_path, forest_merged_path)
+
+# Other Nature Areas with vegetation
+CLC_on_vegetation_gdf = filter_merge_save(CLC_gdf, 'Code_18', '32', on_vegetation_filtered_path, on_vegetation_merged_path)
+
+# Other Nature Areas without vegetation
+CLC_on_no_vegetation_gdf = filter_merge_save(CLC_gdf, 'Code_18', '33', on_no_vegetation_filtered_path, on_no_vegetation_merged_path)
+
+# Other Nature Areas with water
+CLC_on_water_gdf = filter_merge_save(CLC_gdf, 'Code_18', '4', on_water_filtered_path, on_water_merged_path)
+
+# Water Bodies Areas
+CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_filtered_path, water_bodies_merged_path)
