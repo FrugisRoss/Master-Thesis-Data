@@ -7,6 +7,12 @@ Created on Thu Oct 31 10:25:22 2024
 
 import geopandas as gpd
 import pandas as pd
+import rioxarray as rxr
+from shapely.geometry import shape
+import rasterio.features
+
+#%%
+#Obtains different files for different Land Cover (aggregated) Class
 
 # Load the DK land Area with administrative boundaries vector layer and merge the administrative boundaries
 DKLand_adm_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land.shp')
@@ -115,3 +121,46 @@ CLC_on_water_gdf = filter_merge_save(CLC_gdf, 'Code_18', '4', on_water_filtered_
 
 # Water Bodies Areas
 CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_filtered_path, water_bodies_merged_path)
+
+#%%
+
+# Potected areas from Biodiversity Council
+
+def raster_to_vector(tiff_path, output_vector_path):
+    """
+    Converts a binary TIFF file (0 and 1 values) into a vector shapefile with separate polygons
+    for regions with value 1 and value 0.
+    
+    Parameters:
+    - tiff_path (str): Path to the input TIFF file.
+    - output_vector_path (str): Path to save the output shapefile (.shp).
+    """
+    # Load the raster data using rioxarray
+    raster = rxr.open_rasterio(tiff_path)
+    
+    # Assuming a single band, get the data array (0 for background, 1 for regions of interest)
+    band_data = raster.squeeze().values
+
+    # Initialize an empty GeoDataFrame to store polygons
+    polygons_gdf = gpd.GeoDataFrame(columns=["value", "geometry"], crs=raster.rio.crs)
+
+    # Iterate over values to create polygons for each unique value (0 and 1)
+    for value in [0, 1]:
+        # Use rasterio's shapes method to generate polygons for each region
+        shapes = rasterio.features.shapes(band_data, mask=(band_data == value), transform=raster.rio.transform())
+        
+        # Extract each polygon and add it to the GeoDataFrame
+        for geom, val in shapes:
+            if val == value:  # Ensure we match the value we're processing
+                polygons_gdf = polygons_gdf.append({"value": val, "geometry": shape(geom)}, ignore_index=True)
+
+    # Save the resulting polygons to a shapefile
+    polygons_gdf.to_file(output_vector_path, driver="ESRI Shapefile")
+
+    return polygons_gdf
+
+biodiversity_tiff_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_30.tiff'
+
+biodiversity_vector_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_30.shp'
+
+biodiversity30_gdf=raster_to_vector(biodiversity_tiff_path,biodiversity_vector_path)
