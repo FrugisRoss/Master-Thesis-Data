@@ -27,10 +27,16 @@ if DKLand_gdf.crs != WDPA_merged_gdf.crs:
     WDPA_merged_gdf = WDPA_merged_gdf.to_crs(DKLand_gdf.crs)
 DKLand_subtracted_gdf= DKLand_gdf['geometry'].difference(WDPA_merged_gdf)
 DKLand_notprotected_gdf = gpd.GeoDataFrame(DKLand_gdf.drop(columns='geometry'), geometry=DKLand_subtracted_gdf, crs=DKLand_gdf.crs)
-DKLand_subtracted_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_notprotected.shp')
+DKLand_notprotected_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_notprotected.shp')
 
 # Load the CLC vector layer into a GeoDataFrame
 CLC_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC\Results\U2018_CLC2018_V2020_20u1.shp')
+
+#Keep only the areas that are not protected
+if DKLand_notprotected_gdf.crs != CLC_gdf.crs:
+    CLC_gdf = CLC_gdf.to_crs(DKLand_notprotected_gdf.crs)
+CLC_gdf=gpd.overlay(CLC_gdf,DKLand_notprotected_gdf, how='intersection')
+CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp')
 
 #Definition of a function for filtering and merging the different aggregated CLC classes
 
