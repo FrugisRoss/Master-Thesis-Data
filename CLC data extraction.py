@@ -129,6 +129,8 @@ CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_f
 Biodiversity_30_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_030_vector.shp')
 
 Bio30_path =r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\Biodiversity30.shp'
-Bio30_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\Biodiversity30_merged.shp'
+filtered_gdf = Biodiversity_30_gdf[Biodiversity_30_gdf['DN'] == 1]
 
 Bio30_merged_gdf = filter_merge_save(Biodiversity30_gdf, 'DN', '1', Bio30_path, Bio30_merged_path)
+filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
+
