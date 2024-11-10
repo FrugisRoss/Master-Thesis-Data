@@ -11,6 +11,7 @@ import rioxarray as rxr
 from shapely.geometry import shape
 import rasterio
 from rasterio.mask import mask
+from rasterstats import zonal_stats
 import os
 
 #%%
@@ -137,50 +138,36 @@ Bio30_merged_gdf = filter_merge_save(Biodiversity30_gdf, 'DN', '1', Bio30_path, 
 filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 
 #%%
- #Importing the yields from FAO
-
-def clip_raster_with_vector(raster_path, vector_path, output_path):
-    """
-    Clips a raster file to the extent of a geometry in a vector file and saves the result.
-
-    Parameters:
-    raster_path (str): Path to the input raster file.
-    vector_path (str): Path to the input vector file containing the geometry for clipping.
-    output_path (str): Path to save the clipped raster.
-    """
-    # Load the vector file and get the geometry
-    vector_data = gpd.read_file(vector_path)
-    geometry = vector_data.geometry.values  # Extract geometry as a list
-
-    # Open the raster file
-    with rasterio.open(raster_path) as src:
-        # Clip the raster with the vector geometry
-        out_image, out_transform = mask(src, geometry, crop=True)
-        
-        # Update metadata for the new clipped raster
-        out_meta = src.meta.copy()
-        out_meta.update({
-            "driver": "GTiff",
-            "height": out_image.shape[1],
-            "width": out_image.shape[2],
-            "transform": out_transform
-        })
-        
-        # Save the clipped raster
-        with rasterio.open(output_path, "w", **out_meta) as dest:
-            dest.write(out_image)
+#Importing the yields from FAO
         
 wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif')
 barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld.tif')
 rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200b_yld.tif')
 oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
 
-wheat_clipped_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld_clip.tif')
-barley_clipped_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld_clip.tif')
-rye_clipped_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200b_yld_clip.tif')
-oat_clipped_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld_clip.tif')
+# Define the shapefile path
+shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
+output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions_yields.shp'  # Path to save the output shapefile
 
-clip_raster_with_vector(wheat_raster_path,agricultural_merged_path,wheat_clipped_raster_path)
-clip_raster_with_vector(barley_raster_path,agricultural_merged_path,barley_clipped_raster_path)
-clip_raster_with_vector(rye_raster_path,agricultural_merged_path,rye_clipped_raster_path)
-clip_raster_with_vector(oat_raster_path,agricultural_merged_path,oat_clipped_raster_path)
+# Load the polygon shapefile using geopandas
+regions_gdf = gpd.read_file(shapefile_path)
+
+# Define the list of rasters and the field names to store the mean values
+raster_paths = {
+    "wheat_mean": wheat_raster_path,
+    "barley_mean": barley_raster_path,
+    "rye_mean": rye_raster_path,
+    "oat_mean": oat_raster_path
+}
+
+# Iterate over each raster and calculate the mean within each polygon
+for field_name, raster_path in raster_paths.items():
+    # Calculate the mean value for the raster within each polygon
+    stats = zonal_stats(regions_gdf, raster_path, stats="mean", geojson_out=True)
+    
+    # Extract the mean values from the stats and add to the GeoDataFrame
+    mean_values = [feature["properties"]["mean"] for feature in stats]
+    polygons[field_name] = mean_values
+
+# Save the output with added zonal statistics fields
+polygons.to_file(output_path, driver="ESRI Shapefile")
