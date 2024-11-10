@@ -138,11 +138,11 @@ Bio30_merged_gdf = filter_merge_save(Biodiversity30_gdf, 'DN', '1', Bio30_path, 
 filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 
 #%%
-#Importing the yields from FAO
+#Importing the yields from FAO [kg DM/ha]
         
-wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif')
+wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif') #potential yields
 barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld.tif')
-rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200b_yld.tif')
+rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200a_yld.tif')
 oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
 
 # Define the shapefile path
@@ -154,10 +154,10 @@ regions_gdf = gpd.read_file(shapefile_path)
 
 # Define the list of rasters and the field names to store the mean values
 raster_paths = {
-    "wheat_mean": wheat_raster_path,
-    "barley_mean": barley_raster_path,
-    "rye_mean": rye_raster_path,
-    "oat_mean": oat_raster_path
+    "wheat_pot": wheat_raster_path,
+    "barley_pot": barley_raster_path,
+    "rye_pot": rye_raster_path,
+    "oat_pot": oat_raster_path
 }
 
 # Iterate over each raster and calculate the mean within each polygon
@@ -167,7 +167,7 @@ for field_name, raster_path in raster_paths.items():
     
     # Extract the mean values from the stats and add to the GeoDataFrame
     mean_values = [feature["properties"]["mean"] for feature in stats]
-    polygons[field_name] = mean_values
+    regions_gdf[field_name] = mean_values
 
 # Save the output with added zonal statistics fields
-polygons.to_file(output_path, driver="ESRI Shapefile")
+regions_gdf.to_file(output_path, driver="ESRI Shapefile")
