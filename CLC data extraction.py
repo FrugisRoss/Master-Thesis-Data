@@ -133,10 +133,8 @@ CLC_on_water_gdf = filter_merge_save(CLC_gdf, 'Code_18', '4', on_water_filtered_
 CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_filtered_path, water_bodies_merged_path)
 
 #%%
-# Dividing the different types of areas per region
-shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
-regions_gdf = gpd.read_file(shapefile_path)
 
+regions_gdf = gpd.read_file( r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp')
 
 # Dictionary to store total area by region and land cover type
 area_by_region = regions_gdf[['name_en', 'geometry']].copy()  # Start with a copy of the regions GeoDataFrame
@@ -182,10 +180,11 @@ for cover_type, gdf in land_cover_data.items():
             
             # Calculate area in square meters for this land cover in this region
             total_area_sqm = intersected_gdf.geometry.area.sum()
-            area_by_region.loc[region_name, f"{cover_type}_area_sqm"] = float(total_area_sqm)
+            area_by_region.loc[region_name, f"{cover_type}_area_sqm"] = total_area_sqm
 
 # Reset the index to have 'name_en' as a column
 area_by_region.reset_index(inplace=True)
+
 
 # Ensure that numeric fields are stored with appropriate precision
 area_by_region = area_by_region.astype({
