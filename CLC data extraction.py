@@ -13,6 +13,12 @@ from shapely.geometry import shape
 import rasterio
 from rasterio.mask import mask
 from rasterstats import zonal_stats
+from IPython.display import display
+from shapely.geometry import Polygon, MultiPolygon
+from shapely.validation import make_valid
+
+
+
 import os
 
 #%%
@@ -127,6 +133,107 @@ CLC_on_water_gdf = filter_merge_save(CLC_gdf, 'Code_18', '4', on_water_filtered_
 CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_filtered_path, water_bodies_merged_path)
 
 #%%
+# Dividing the different types of areas per region
+shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
+regions_gdf = gpd.read_file(shapefile_path)
+
+
+# Dictionary to store total area by region and land cover type
+area_by_region = regions_gdf[['name_en', 'geometry']].copy()  # Start with a copy of the regions GeoDataFrame
+area_by_region.set_index('name_en', inplace=True)  # Use region names as index for easy access
+
+# Define the different land cover types and their corresponding paths
+land_cover_data = {
+    "urban": CLC_urban_gdf,
+    "agricultural": CLC_agricultural_gdf,
+    "forest": CLC_forest_gdf,
+    "vegetation": CLC_on_vegetation_gdf,
+    "no_vegetation": CLC_on_no_vegetation_gdf,
+    "water": CLC_on_water_gdf,
+    "water_bodies": CLC_water_bodies_gdf
+}
+
+# Loop through each land cover type and calculate areas by region
+for cover_type, gdf in land_cover_data.items():
+    # Create a column to store area for this land cover type
+    area_by_region[f"{cover_type}_area_sqm"] = 0
+    
+    # Run intersection and area calculation for each region
+    for _, region in regions_gdf.iterrows():
+        region_name = region['name_en']
+        region_geometry = region['geometry']
+        
+        # Intersect land cover polygons with the region
+        intersected_polygons = []
+        for _, land_cover_row in gdf.iterrows():
+            try:
+                intersection = land_cover_row['geometry'].intersection(region_geometry)
+                
+                # Append valid intersections
+                if not intersection.is_empty and intersection.geom_type in ['Polygon', 'MultiPolygon']:
+                    intersected_polygons.append(intersection)
+            except Exception as e:
+                print(f"Intersection error for region {region_name} with {cover_type}: {e}")
+        
+        # Create GeoDataFrame with intersected polygons
+        if intersected_polygons:
+            intersected_gdf = gpd.GeoDataFrame(geometry=intersected_polygons, crs=gdf.crs)
+            intersected_gdf = intersected_gdf.to_crs("EPSG:32633")  # Ensure the correct CRS
+            
+            # Calculate area in square meters for this land cover in this region
+            total_area_sqm = intersected_gdf.geometry.area.sum()
+            area_by_region.loc[region_name, f"{cover_type}_area_sqm"] = float(total_area_sqm)
+
+# Reset the index to have 'name_en' as a column
+area_by_region.reset_index(inplace=True)
+
+# Ensure that numeric fields are stored with appropriate precision
+area_by_region = area_by_region.astype({
+    'urban_area_sqm': 'float64',
+    'agricultural_area_sqm': 'float64',
+    'forest_area_sqm': 'float64',
+    'vegetation_area_sqm': 'float64',
+    'no_vegetation_area_sqm': 'float64',
+    'water_area_sqm': 'float64',
+    'water_bodies_area_sqm': 'float64'
+})
+
+# Save to shapefile with appropriate precision
+output_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
+area_by_region.to_file(output_path)
+
+# Save to shapefile
+output_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
+area_by_region.to_file(output_path)
+
+# Create a new DataFrame from area_by_region that contains Region Name and Land Cover Area columns
+# Assuming `area_by_region` is the DataFrame holding the area information per region
+
+# Extract the columns with area data (one per land cover type) and the region names
+land_cover_columns = [
+    'urban_area_sqm', 'agricultural_area_sqm', 'forest_area_sqm', 
+    'vegetation_area_sqm', 'no_vegetation_area_sqm', 'water_area_sqm', 
+    'water_bodies_area_sqm'
+]
+
+# Create a new DataFrame with 'region_name' and corresponding area columns
+area_table = area_by_region[land_cover_columns].copy()
+
+# Add the region name as a new column
+area_table['region_name'] = area_by_region.name_en
+
+# Reorder the columns so 'region_name' is first
+area_table = area_table[['region_name'] + land_cover_columns]
+
+# Optionally, you can reset the index if needed (to make 'region_name' a regular column)
+area_table.reset_index(drop=True, inplace=True)
+
+
+# Export the table to a CSV file
+output_table_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\land_cover_area_by_region.csv"
+area_table.to_csv(output_table_path, index=False)
+
+#%%
 
 #Importing Potected areas from Biodiversity Council (30% of the national area )
 
@@ -140,34 +247,37 @@ filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 #%%
 #Importing the yields from FAO [kg DM/ha]
         
-wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif') #potential yields
-barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld.tif')
-rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200a_yld.tif')
-oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
+# wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif') #potential yields
+# barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld.tif')
+# rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200a_yld.tif')
+# oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
 
-# Define the shapefile path
-shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
-output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions_yields.shp'  # Path to save the output shapefile
+# # Define the shapefile path
+# shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
+# output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions_yields.shp'  # Path to save the output shapefile
 
-# Load the polygon shapefile using geopandas
-regions_gdf = gpd.read_file(shapefile_path)
+# # Load the polygon shapefile using geopandas
+# regions_gdf = gpd.read_file(shapefile_path)
 
-# Define the list of rasters and the field names to store the mean values
-raster_paths = {
-    "wheat_pot": wheat_raster_path,
-    "barley_pot": barley_raster_path,
-    "rye_pot": rye_raster_path,
-    "oat_pot": oat_raster_path
-}
+# # Define the list of rasters and the field names to store the mean values
+# raster_paths = {
+#     "wheat_pot": wheat_raster_path, #kg DM/ha
+#     "barley_pot": barley_raster_path,
+#     "rye_pot": rye_raster_path,
+#     "oat_pot": oat_raster_path
+# }
 
-# Iterate over each raster and calculate the mean within each polygon
-for field_name, raster_path in raster_paths.items():
-    # Calculate the mean value for the raster within each polygon
-    stats = zonal_stats(regions_gdf, raster_path, stats="mean", geojson_out=True)
+# # Iterate over each raster and calculate the mean within each polygon
+# for field_name, raster_path in raster_paths.items():
+#     # Calculate the mean value for the raster within each polygon
+#     stats = zonal_stats(regions_gdf, raster_path, stats="mean", geojson_out=True)
     
-    # Extract the mean values from the stats and add to the GeoDataFrame
-    mean_values = [feature["properties"]["mean"] for feature in stats]
-    regions_gdf[field_name] = mean_values
+#     # Extract the mean values from the stats and add to the GeoDataFrame
+#     mean_values = [feature["properties"]["mean"] for feature in stats]
+#     regions_gdf[field_name] = mean_values
 
-# Save the output with added zonal statistics fields
-regions_gdf.to_file(output_path, driver="ESRI Shapefile")
+# # Save the output with added zonal statistics fields
+# regions_gdf.to_file(output_path, driver="ESRI Shapefile")
+# display(regions_gdf)
+
+# #%%
