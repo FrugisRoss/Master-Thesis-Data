@@ -4,6 +4,7 @@ Created on Thu Oct 31 10:25:22 2024
 
 @author: Rossella Frugis
 """
+#%%
 
 import geopandas as gpd
 import pandas as pd
@@ -134,7 +135,6 @@ Biodiversity_30_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di 
 Bio30_path =r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\Biodiversity30.shp'
 filtered_gdf = Biodiversity_30_gdf[Biodiversity_30_gdf['DN'] == 1]
 
-Bio30_merged_gdf = filter_merge_save(Biodiversity30_gdf, 'DN', '1', Bio30_path, Bio30_merged_path)
 filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 
 #%%
