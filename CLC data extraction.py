@@ -25,38 +25,52 @@ import os
 #Obtains different files for different Land Cover (aggregated) Class
 
 # Load the DK land Area with administrative boundaries vector layer and merge the administrative boundaries
-DKLand_adm_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land.shp')
+DKLand_adm_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land.shp')
 merged_geometry = DKLand_adm_gdf.unary_union
 DKLand_gdf=gpd.GeoDataFrame(geometry=[merged_geometry], crs=DKLand_adm_gdf.crs)
-DKLand_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_merged.shp')
+DKLand_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_merged.shp')
 
 # Load the WDPA layers and merge them 
-WDPA0_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\WDPA_WDOECM_Nov2024_Public_DNK_shp_0\WDPA_WDOECM_Nov2024_Public_DNK_shp-polygons.shp')
-WDPA1_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\WDPA_WDOECM_Nov2024_Public_DNK_shp_1\WDPA_WDOECM_Nov2024_Public_DNK_shp-polygons.shp')
+WDPA0_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\WDPA_WDOECM_Nov2024_Public_DNK_shp_0\WDPA_WDOECM_Nov2024_Public_DNK_shp-polygons.shp')
+WDPA1_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\WDPA_WDOECM_Nov2024_Public_DNK_shp_1\WDPA_WDOECM_Nov2024_Public_DNK_shp-polygons.shp')
 merged_gdf = pd.concat([WDPA0_gdf, WDPA1_gdf], ignore_index=True)
 merged_geometry = merged_gdf.unary_union
 WDPA_merged_gdf=gpd.GeoDataFrame(geometry=[merged_geometry], crs=DKLand_adm_gdf.crs)
-WDPA_merged_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\merged_WDPA.shp')
+WDPA_merged_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\merged_WDPA.shp')
 
 #Subtracting Protected areas from Danish land
 if DKLand_gdf.crs != WDPA_merged_gdf.crs:
     WDPA_merged_gdf = WDPA_merged_gdf.to_crs(DKLand_gdf.crs)
 DKLand_subtracted_gdf= DKLand_gdf['geometry'].difference(WDPA_merged_gdf)
 DKLand_notprotected_gdf = gpd.GeoDataFrame(DKLand_gdf.drop(columns='geometry'), geometry=DKLand_subtracted_gdf, crs=DKLand_gdf.crs)
-DKLand_notprotected_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_notprotected.shp')
+DKLand_notprotected_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_notprotected.shp')
 
 # Load the CLC vector layer into a GeoDataFrame
-CLC_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC\Results\U2018_CLC2018_V2020_20u1.shp')
+CLC_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC\Results\U2018_CLC2018_V2020_20u1.shp')
 
 #Keep only the areas that are not protected
 if DKLand_notprotected_gdf.crs != CLC_gdf.crs:
     CLC_gdf = CLC_gdf.to_crs(DKLand_notprotected_gdf.crs)
 CLC_gdf=gpd.overlay(CLC_gdf,DKLand_notprotected_gdf, how='intersection')
-CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp')
+CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\CLC_notprotected.shp')
 
+#Importing the file with the regions for the level of aggregation
+regions_gdf = gpd.read_file( r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\OCHA_Administrative_Boundaries\regions.shp')
+
+#%%
+# Ensure both are in the same CRS and fix any invalid geometries
+target_crs = "EPSG:32633"
+CLC_gdf = CLC_gdf.to_crs(target_crs)
+regions_gdf = regions_gdf.to_crs(target_crs)
+
+CLC_gdf['geometry'] = CLC_gdf['geometry'].apply(lambda geom: geom if geom.is_valid else geom.buffer(0))
+regions_gdf['geometry'] = regions_gdf['geometry'].apply(lambda geom: geom if geom.is_valid else geom.buffer(0))
+CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\CLC_notprotected_buffer.shp')
+
+#%%
 #Definition of a function for filtering and merging the different aggregated CLC classes
 
-def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path, tolerance=0.01):
+def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path, tolerance=0.1):
     """
     Filters a GeoDataFrame based on a given attribute and value prefix, merges the geometries,
     regularizes the merged polygon, saves both filtered and merged layers as shapefiles, and 
@@ -94,26 +108,26 @@ def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path, 
 
 
 # Definition of paths to save each CLC aggregation cathegory output
-urban_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas.shp'
-urban_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas_Merged.shp'
+urban_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\Urban_Areas.shp'
+urban_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\Urban_Areas_Merged.shp'
 
-agricultural_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas.shp'
-agricultural_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
+agricultural_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\Agricultural_Areas.shp'
+agricultural_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
 
-forest_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas.shp'
-forest_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas_Merged.shp'
+forest_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\Forest_Areas.shp'
+forest_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\Forest_Areas_Merged.shp'
 
-on_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas.shp'
-on_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas_Merged.shp'
+on_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\ON_vegetation_Areas.shp'
+on_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\ON_vegetation_Areas_Merged.shp'
 
-on_no_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas.shp'
-on_no_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas_Merged.shp'
+on_no_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\ON_no_vegetation_Areas.shp'
+on_no_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\ON_no_vegetation_Areas_Merged.shp'
 
-on_water_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas.shp'
-on_water_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas_Merged.shp'
+on_water_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\ON_water_Areas.shp'
+on_water_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\ON_water_Areas_Merged.shp'
 
-water_bodies_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas.shp'
-water_bodies_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas_Merged.shp'
+water_bodies_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\Water_Bodies_Areas.shp'
+water_bodies_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\Water_Bodies_Areas_Merged.shp'
 
 # Run filtering and merging for each category
 # Urban Areas
@@ -136,46 +150,6 @@ CLC_on_water_gdf = filter_merge_save(CLC_gdf, 'Code_18', '4', on_water_filtered_
 
 # Water Bodies Areas
 CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_filtered_path, water_bodies_merged_path)
-
-
-regions_gdf = gpd.read_file( r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp')
-
-# # Definition of paths to save each CLC aggregation cathegory output
-# urban_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas.shp'
-# urban_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas_Merged.shp'
-
-# agricultural_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas.shp'
-# agricultural_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
-
-# forest_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas.shp'
-# forest_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas_Merged.shp'
-
-# on_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas.shp'
-# on_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas_Merged.shp'
-
-# on_no_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas.shp'
-# on_no_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas_Merged.shp'
-
-# on_water_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas.shp'
-# on_water_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas_Merged.shp'
-
-# water_bodies_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas.shp'
-# water_bodies_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas_Merged.shp'
-
-# # Urban Areas
-# CLC_urban_gdf = gpd.read_file (urban_merged_path)
-# # Agricultural Areas
-# CLC_agricultural_gdf =gpd.read_file (agricultural_merged_path)
-# # Forest Areas
-# CLC_forest_gdf = gpd.read_file (forest_merged_path)
-# # Other Nature Areas with vegetation
-# CLC_on_vegetation_gdf = gpd.read_file (on_vegetation_merged_path)
-# # Other Nature Areas without vegetation
-# CLC_on_no_vegetation_gdf = gpd.read_file (on_no_vegetation_merged_path)
-# # Other Nature Areas with water
-# CLC_on_water_gdf =gpd.read_file (on_water_merged_path)
-# # Water Bodies Areas
-# CLC_water_bodies_gdf= gpd.read_file (water_bodies_merged_path)
 
 # Dictionary to store total area by region and land cover type
 area_by_region = regions_gdf[['name_en', 'geometry']].copy()  # Start with a copy of the regions GeoDataFrame
@@ -239,11 +213,11 @@ area_by_region = area_by_region.astype({
 })
 
 # Save to shapefile with appropriate precision
-output_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
+output_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
 area_by_region.to_file(output_path)
 
 # Save to shapefile
-output_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
+output_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
 area_by_region.to_file(output_path)
 
 # Create a new DataFrame from area_by_region that contains Region Name and Land Cover Area columns
@@ -268,7 +242,7 @@ area_table = area_table[['region_name'] + land_cover_columns]
 # Optionally, you can reset the index if needed (to make 'region_name' a regular column)
 area_table.reset_index(drop=True, inplace=True)
 
-
+#%%
 # Export the table to a CSV file
 output_table_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\land_cover_area_by_region.csv"
 area_table.to_csv(output_table_path, index=False)
@@ -277,9 +251,9 @@ area_table.to_csv(output_table_path, index=False)
 
 #Importing Potected areas from Biodiversity Council (30% of the national area )
 
-Biodiversity_30_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_030_vector.shp')
+Biodiversity_30_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\Biodiversity Council\scenarie_030_vector.shp')
 
-Bio30_path =r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\Biodiversity30.shp'
+Bio30_path =r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\Biodiversity Council\Biodiversity30.shp'
 filtered_gdf = Biodiversity_30_gdf[Biodiversity_30_gdf['DN'] == 1]
 
 filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
@@ -287,14 +261,14 @@ filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 #%%
 # Importing the yields from FAO [kg DM/ha]
         
-wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif') #potential yields
-barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld.tif')
-rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200a_yld.tif')
-oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
+wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\FAO\whea200b_yld.tif') #potential yields
+barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\FAO\barl200b_yld.tif')
+rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\FAO\ryes200a_yld.tif')
+oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\FAO\oats200b_yld.tif')
 
 # Define the shapefile path
-shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
-output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions_yields.shp'  # Path to save the output shapefile
+shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
+output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\GIS-data\QGIS data\OCHA_Administrative_Boundaries\regions_yields.shp'  # Path to save the output shapefile
 
 # Load the polygon shapefile using geopandas
 regions_gdf = gpd.read_file(shapefile_path)
