@@ -56,10 +56,11 @@ CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magist
 
 #Definition of a function for filtering and merging the different aggregated CLC classes
 
-def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path):
+def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path, tolerance=0.01):
     """
     Filters a GeoDataFrame based on a given attribute and value prefix, merges the geometries,
-    saves both filtered and merged layers as shapefiles, and returns only the merged GeoDataFrame.
+    regularizes the merged polygon, saves both filtered and merged layers as shapefiles, and 
+    returns only the merged GeoDataFrame.
 
     Parameters:
         gdf (GeoDataFrame): The input GeoDataFrame to filter.
@@ -67,9 +68,10 @@ def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path):
         value_prefix (str): The prefix of the attribute value to filter by.
         filtered_path (str): The file path to save the filtered shapefile.
         merged_path (str): The file path to save the merged shapefile.
+        tolerance (float): Tolerance for polygon regularization. Default is 0.01.
 
     Returns:
-        GeoDataFrame: The merged GeoDataFrame containing the combined geometry.
+        GeoDataFrame: The merged GeoDataFrame containing the combined and regularized geometry.
     """
     # Step 1: Filter the GeoDataFrame based on the attribute's value prefix
     filtered_gdf = gdf[gdf[attribute].astype(str).str.startswith(value_prefix)]
@@ -79,9 +81,12 @@ def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path):
     
     # Step 3: Merge geometries in the filtered GeoDataFrame
     merged_geometry = filtered_gdf.unary_union
-    merged_gdf = gpd.GeoDataFrame(geometry=[merged_geometry], crs=filtered_gdf.crs)
     
-    # Step 4: Save the merged GeoDataFrame to the specified path
+    # Step 4: Regularize the merged polygon with the specified tolerance
+    regularized_geometry = merged_geometry.simplify(tolerance, preserve_topology=True)
+    merged_gdf = gpd.GeoDataFrame(geometry=[regularized_geometry], crs=filtered_gdf.crs)
+    
+    # Step 5: Save the merged and regularized GeoDataFrame to the specified path
     merged_gdf.to_file(merged_path)
     
     # Return the merged GeoDataFrame directly
@@ -132,9 +137,45 @@ CLC_on_water_gdf = filter_merge_save(CLC_gdf, 'Code_18', '4', on_water_filtered_
 # Water Bodies Areas
 CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_filtered_path, water_bodies_merged_path)
 
-#%%
 
 regions_gdf = gpd.read_file( r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp')
+
+# # Definition of paths to save each CLC aggregation cathegory output
+# urban_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas.shp'
+# urban_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas_Merged.shp'
+
+# agricultural_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas.shp'
+# agricultural_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
+
+# forest_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas.shp'
+# forest_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas_Merged.shp'
+
+# on_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas.shp'
+# on_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas_Merged.shp'
+
+# on_no_vegetation_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas.shp'
+# on_no_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas_Merged.shp'
+
+# on_water_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas.shp'
+# on_water_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas_Merged.shp'
+
+# water_bodies_filtered_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas.shp'
+# water_bodies_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas_Merged.shp'
+
+# # Urban Areas
+# CLC_urban_gdf = gpd.read_file (urban_merged_path)
+# # Agricultural Areas
+# CLC_agricultural_gdf =gpd.read_file (agricultural_merged_path)
+# # Forest Areas
+# CLC_forest_gdf = gpd.read_file (forest_merged_path)
+# # Other Nature Areas with vegetation
+# CLC_on_vegetation_gdf = gpd.read_file (on_vegetation_merged_path)
+# # Other Nature Areas without vegetation
+# CLC_on_no_vegetation_gdf = gpd.read_file (on_no_vegetation_merged_path)
+# # Other Nature Areas with water
+# CLC_on_water_gdf =gpd.read_file (on_water_merged_path)
+# # Water Bodies Areas
+# CLC_water_bodies_gdf= gpd.read_file (water_bodies_merged_path)
 
 # Dictionary to store total area by region and land cover type
 area_by_region = regions_gdf[['name_en', 'geometry']].copy()  # Start with a copy of the regions GeoDataFrame
@@ -244,39 +285,48 @@ filtered_gdf = Biodiversity_30_gdf[Biodiversity_30_gdf['DN'] == 1]
 filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 
 #%%
-#Importing the yields from FAO [kg DM/ha]
+# Importing the yields from FAO [kg DM/ha]
         
-# wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif') #potential yields
-# barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld.tif')
-# rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200a_yld.tif')
-# oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
+wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif') #potential yields
+barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld.tif')
+rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200a_yld.tif')
+oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
 
-# # Define the shapefile path
-# shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
-# output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions_yields.shp'  # Path to save the output shapefile
+# Define the shapefile path
+shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
+output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions_yields.shp'  # Path to save the output shapefile
 
-# # Load the polygon shapefile using geopandas
-# regions_gdf = gpd.read_file(shapefile_path)
+# Load the polygon shapefile using geopandas
+regions_gdf = gpd.read_file(shapefile_path)
 
-# # Define the list of rasters and the field names to store the mean values
-# raster_paths = {
-#     "wheat_pot": wheat_raster_path, #kg DM/ha
-#     "barley_pot": barley_raster_path,
-#     "rye_pot": rye_raster_path,
-#     "oat_pot": oat_raster_path
-# }
+# Define the list of rasters and the field names to store the mean values
+raster_paths = {
+    "wheat_pot": wheat_raster_path, #kg DM/ha
+    "barley_pot": barley_raster_path,
+    "rye_pot": rye_raster_path,
+    "oat_pot": oat_raster_path
+}
 
-# # Iterate over each raster and calculate the mean within each polygon
-# for field_name, raster_path in raster_paths.items():
-#     # Calculate the mean value for the raster within each polygon
-#     stats = zonal_stats(regions_gdf, raster_path, stats="mean", geojson_out=True)
+# Iterate over each raster and calculate the mean within each polygon
+for field_name, raster_path in raster_paths.items():
+    # Calculate the mean value for the raster within each polygon
+    stats = zonal_stats(regions_gdf, raster_path, stats="mean", geojson_out=True)
     
-#     # Extract the mean values from the stats and add to the GeoDataFrame
-#     mean_values = [feature["properties"]["mean"] for feature in stats]
-#     regions_gdf[field_name] = mean_values
+    # Extract the mean values from the stats and add to the GeoDataFrame
+    mean_values = [feature["properties"]["mean"] for feature in stats]
+    regions_gdf[field_name] = mean_values
 
-# # Save the output with added zonal statistics fields
-# regions_gdf.to_file(output_path, driver="ESRI Shapefile")
-# display(regions_gdf)
+# Save the output with added zonal statistics fields
+regions_gdf.to_file(output_path, driver="ESRI Shapefile")
+display(regions_gdf)
 
-# #%%
+# Create a new DataFrame with region names and crop potentials
+table_df = regions_gdf[["name_en", "wheat_pot", "barley_pot", "rye_pot", "oat_pot"]]
+
+# Display the table
+print(table_df)
+
+# Optionally, save to a CSV file
+table_df.to_csv(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\region_yields_table.csv', index=False)
+
+#%%
