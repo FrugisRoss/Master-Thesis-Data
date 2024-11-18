@@ -24,17 +24,17 @@ import os
 #%%
 #Obtains different files for different Land Cover (aggregated) Class
 
-# Load the DK land Area with administrative boundaries vector layer and merge the administrative boundaries
+# Load the DK land Area with administrative boundaries vector layer and merge the administrative boundaries (https://data.humdata.org/dataset/kontur-boundaries-denmark)
 DKLand_adm_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land.shp')
-merged_geometry = DKLand_adm_gdf.unary_union
+merged_geometry = DKLand_adm_gdf.union_all()
 DKLand_gdf=gpd.GeoDataFrame(geometry=[merged_geometry], crs=DKLand_adm_gdf.crs)
 DKLand_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_merged.shp')
 
-# Load the WDPA layers and merge them 
+# Load the WDPA layers and merge them (https://www.protectedplanet.net/en/thematic-areas/wdpa?tab=WDPA)
 WDPA0_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\WDPA_WDOECM_Nov2024_Public_DNK_shp_0\WDPA_WDOECM_Nov2024_Public_DNK_shp-polygons.shp')
 WDPA1_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\WDPA_WDOECM_Nov2024_Public_DNK_shp_1\WDPA_WDOECM_Nov2024_Public_DNK_shp-polygons.shp')
 merged_gdf = pd.concat([WDPA0_gdf, WDPA1_gdf], ignore_index=True)
-merged_geometry = merged_gdf.unary_union
+merged_geometry = merged_gdf.union_all()
 WDPA_merged_gdf=gpd.GeoDataFrame(geometry=[merged_geometry], crs=DKLand_adm_gdf.crs)
 WDPA_merged_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\merged_WDPA.shp')
 
@@ -45,26 +45,40 @@ DKLand_subtracted_gdf= DKLand_gdf['geometry'].difference(WDPA_merged_gdf)
 DKLand_notprotected_gdf = gpd.GeoDataFrame(DKLand_gdf.drop(columns='geometry'), geometry=DKLand_subtracted_gdf, crs=DKLand_gdf.crs)
 DKLand_notprotected_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_notprotected.shp')
 
-# Load the CLC vector layer into a GeoDataFrame
+# Load the CLC shapefile
 CLC_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC\Results\U2018_CLC2018_V2020_20u1.shp')
 
-#Keep only the areas that are not protected
+# Keep only the areas that are not protected
 if DKLand_notprotected_gdf.crs != CLC_gdf.crs:
     CLC_gdf = CLC_gdf.to_crs(DKLand_notprotected_gdf.crs)
-CLC_gdf=gpd.overlay(CLC_gdf,DKLand_notprotected_gdf, how='intersection')
-CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp')
 
-#Importing the file with the regions for the level of aggregation
-regions_gdf = gpd.read_file( r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp')
+# Truncate the 'Shape_Area' and 'Shape_Leng' fields to 10 characters
+if 'Shape_Area' in CLC_gdf.columns:
+    CLC_gdf['Shape_Area'] = CLC_gdf['Shape_Area'].astype(str).str[:10]
+
+if 'Shape_Leng' in CLC_gdf.columns:
+    CLC_gdf['Shape_Leng'] = CLC_gdf['Shape_Leng'].astype(str).str[:10]
+
+# Perform the intersection
+CLC_gdf = gpd.overlay(CLC_gdf, DKLand_notprotected_gdf, how='intersection')
+
+# Save the output to a new shapefile
+output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp'
+CLC_gdf.to_file(output_path)
 
 #%%
+
+#Importing the file with the NUTS2 regions for europe and extracting the ones for denmark
+
+NUTS2_regions_gdf= gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\ref-nuts-2024-01m.shp\NUTS_2_DK.shp')
+
 # Ensure both are in the same CRS and fix any invalid geometries
 target_crs = "EPSG:32633"
 CLC_gdf = CLC_gdf.to_crs(target_crs)
-regions_gdf = regions_gdf.to_crs(target_crs)
+NUTS2_regions_gdf = NUTS2_regions_gdf.to_crs(target_crs)
 
 CLC_gdf['geometry'] = CLC_gdf['geometry'].apply(lambda geom: geom if geom.is_valid else geom.buffer(0))
-regions_gdf['geometry'] = regions_gdf['geometry'].apply(lambda geom: geom if geom.is_valid else geom.buffer(0))
+NUTS2_regions_gdf['geometry'] = NUTS2_regions_gdf['geometry'].apply(lambda geom: geom if geom.is_valid else geom.buffer(0))
 CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected_buffer.shp')
 
 #%%
@@ -94,7 +108,7 @@ def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path, 
     filtered_gdf.to_file(filtered_path)
     
     # Step 3: Merge geometries in the filtered GeoDataFrame
-    merged_geometry = filtered_gdf.unary_union
+    merged_geometry = filtered_gdf.union_all()
     
     # Step 4: Regularize the merged polygon with the specified tolerance
     regularized_geometry = merged_geometry.simplify(tolerance, preserve_topology=True)
@@ -152,8 +166,8 @@ CLC_on_water_gdf = filter_merge_save(CLC_gdf, 'Code_18', '4', on_water_filtered_
 CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_filtered_path, water_bodies_merged_path)
 
 # Dictionary to store total area by region and land cover type
-area_by_region = regions_gdf[['name_en', 'geometry']].copy()  # Start with a copy of the regions GeoDataFrame
-area_by_region.set_index('name_en', inplace=True)  # Use region names as index for easy access
+area_by_region = NUTS2_regions_gdf[['NUTS_ID', 'geometry']].copy()  # Start with a copy of the regions GeoDataFrame
+area_by_region.set_index('NUTS_ID', inplace=True)  # Use region names as index for easy access
 
 # Define the different land cover types and their corresponding paths
 land_cover_data = {
@@ -172,8 +186,8 @@ for cover_type, gdf in land_cover_data.items():
     area_by_region[f"{cover_type}_area_sqm"] = 0
     
     # Run intersection and area calculation for each region
-    for _, region in regions_gdf.iterrows():
-        region_name = region['name_en']
+    for _, region in NUTS2_regions_gdf.iterrows():
+        region_name = region['NUTS_ID']
         region_geometry = region['geometry']
         
         # Intersect land cover polygons with the region
@@ -197,7 +211,7 @@ for cover_type, gdf in land_cover_data.items():
             total_area_sqm = intersected_gdf.geometry.area.sum()
             area_by_region.loc[region_name, f"{cover_type}_area_sqm"] = total_area_sqm
 
-# Reset the index to have 'name_en' as a column
+# Reset the index to have 'NUTS_ID' as a column
 area_by_region.reset_index(inplace=True)
 
 
@@ -234,7 +248,7 @@ land_cover_columns = [
 area_table = area_by_region[land_cover_columns].copy()
 
 # Add the region name as a new column
-area_table['region_name'] = area_by_region.name_en
+area_table['region_name'] = area_by_region.NUTS_ID
 
 # Reorder the columns so 'region_name' is first
 area_table = area_table[['region_name'] + land_cover_columns]
@@ -251,7 +265,7 @@ area_table.to_csv(output_table_path, index=False)
 
 #Importing Potected areas from Biodiversity Council (30% of the national area )
 
-Biodiversity_30_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_030_vector.shp')
+Biodiversity_30_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_30_shp.shp')
 
 Bio30_path =r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\Biodiversity30.shp'
 filtered_gdf = Biodiversity_30_gdf[Biodiversity_30_gdf['DN'] == 1]
@@ -267,7 +281,7 @@ rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magis
 oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
 
 # Define the shapefile path
-shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'
+shapefile_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions.shp'  
 output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\regions_yields.shp'  # Path to save the output shapefile
 
 # Load the polygon shapefile using geopandas
