@@ -63,13 +63,14 @@ if 'Shape_Leng' in CLC_gdf.columns:
 CLC_gdf = gpd.overlay(CLC_gdf, DKLand_notprotected_gdf, how='intersection')
 
 # Save the output to a new shapefile
-output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp'
+output_path_CLC = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp'
 CLC_gdf.to_file(output_path)
 
 #%%
 
 #Importing the file with the NUTS2 regions for europe and extracting the ones for denmark
-
+output_path_CLC = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp'
+CLC_gdf=gpd.read_file(output_path_CLC)
 NUTS2_regions_gdf= gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\ref-nuts-2024-01m.shp\NUTS_2_DK.shp')
 
 # Ensure both are in the same CRS and fix any invalid geometries
@@ -81,7 +82,6 @@ CLC_gdf['geometry'] = CLC_gdf['geometry'].apply(lambda geom: geom if geom.is_val
 NUTS2_regions_gdf['geometry'] = NUTS2_regions_gdf['geometry'].apply(lambda geom: geom if geom.is_valid else geom.buffer(0))
 CLC_gdf.to_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected_buffer.shp')
 
-#%%
 #Definition of a function for filtering and merging the different aggregated CLC classes
 
 def filter_merge_save(gdf, attribute, value_prefix, filtered_path, merged_path, tolerance=0.1):
@@ -183,8 +183,8 @@ land_cover_data = {
 # Loop through each land cover type and calculate areas by region
 for cover_type, gdf in land_cover_data.items():
     # Create a column to store area for this land cover type
-    area_by_region[f"{cover_type}_area_sqm"] = 0
-    
+    area_by_region[f"{cover_type}_area_he"] = 0
+
     # Run intersection and area calculation for each region
     for _, region in NUTS2_regions_gdf.iterrows():
         region_name = region['NUTS_ID']
@@ -207,48 +207,61 @@ for cover_type, gdf in land_cover_data.items():
             intersected_gdf = gpd.GeoDataFrame(geometry=intersected_polygons, crs=gdf.crs)
             intersected_gdf = intersected_gdf.to_crs("EPSG:32633")  # Ensure the correct CRS
             
-            # Calculate area in square meters for this land cover in this region
-            total_area_sqm = intersected_gdf.geometry.area.sum()
-            area_by_region.loc[region_name, f"{cover_type}_area_sqm"] = total_area_sqm
+            # Calculate area in hectares for this land cover in this region
+            total_area_sqm = intersected_gdf.geometry.area.sum()/10**4
+            area_by_region.loc[region_name, f"{cover_type}_area_he"] = total_area_sqm
 
 # Reset the index to have 'NUTS_ID' as a column
 area_by_region.reset_index(inplace=True)
 
-
 # Ensure that numeric fields are stored with appropriate precision
 area_by_region = area_by_region.astype({
-    'urban_area_sqm': 'float64',
-    'agricultural_area_sqm': 'float64',
-    'forest_area_sqm': 'float64',
-    'vegetation_area_sqm': 'float64',
-    'no_vegetation_area_sqm': 'float64',
-    'water_area_sqm': 'float64',
-    'water_bodies_area_sqm': 'float64'
+    'urban_area_he': 'float64',
+    'agricultural_area_he': 'float64',
+    'forest_area_he': 'float64',
+    'vegetation_area_he': 'float64',
+    'no_vegetation_area_he': 'float64',
+    'water_area_he': 'float64',
+    'water_bodies_area_he': 'float64'
 })
 
 # Save to shapefile with appropriate precision
-output_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
-area_by_region.to_file(output_path)
+output_path_area_by_region= r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
+area_by_region.to_file(output_path_area_by_region)
 
-# Save to shapefile
-output_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
-area_by_region.to_file(output_path)
+
+#%%
 
 # Create a new DataFrame from area_by_region that contains Region Name and Land Cover Area columns
 # Assuming `area_by_region` is the DataFrame holding the area information per region
 
+output_path_area_by_region= r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
+area_by_region_gdf=gpd.read_file(output_path_area_by_region)
+
+
 # Extract the columns with area data (one per land cover type) and the region names
 land_cover_columns = [
-    'urban_area_sqm', 'agricultural_area_sqm', 'forest_area_sqm', 
-    'vegetation_area_sqm', 'no_vegetation_area_sqm', 'water_area_sqm', 
-    'water_bodies_area_sqm'
+    'urban_area_he', 'agricultural_area_he', 'forest_area_he', 
+    'vegetation_area_he', 'no_vegetation_area_he', 'water_area_he', 
+    'water_bodies_area_he'
 ]
 
+rename_map = {
+    'urban_area_he': 'Urban Area [he]',
+    'agricultural_area_he': 'Agricultural Area [he]',
+    'forest_area_he': 'Forest Area [he]',
+    'vegetation_area_he': 'Vegetation Area [he]',
+    'no_vegetation_area_he': 'No Vegetation Area [he]',
+    'water_area_he': 'Water Area [he]',
+    'water_bodies_area_he': 'Water Bodies Area [he]',
+    'region_name': 'Region Name'  # Ensure consistent naming
+}
+
 # Create a new DataFrame with 'region_name' and corresponding area columns
-area_table = area_by_region[land_cover_columns].copy()
+area_table = area_by_region_gdf[land_cover_columns].copy()
 
 # Add the region name as a new column
-area_table['region_name'] = area_by_region.NUTS_ID
+area_table['region_name'] = area_by_region_gdf.NUTS_ID
 
 # Reorder the columns so 'region_name' is first
 area_table = area_table[['region_name'] + land_cover_columns]
@@ -256,10 +269,13 @@ area_table = area_table[['region_name'] + land_cover_columns]
 # Optionally, you can reset the index if needed (to make 'region_name' a regular column)
 area_table.reset_index(drop=True, inplace=True)
 
-#%%
+# Apply the renaming
+area_table.rename(columns=rename_map, inplace=True)
+
 # Export the table to a CSV file
 output_table_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\land_cover_area_by_region.csv"
 area_table.to_csv(output_table_path, index=False)
+
 
 #%%
 
