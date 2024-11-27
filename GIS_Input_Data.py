@@ -5,6 +5,8 @@ Created on Thu Oct 31 10:25:22 2024
 @author: Rossella Frugis
 """
 #%%
+#SECTION 1
+
 
 import geopandas as gpd
 import pandas as pd
@@ -22,6 +24,8 @@ from shapely.validation import make_valid
 import os
 
 #%%
+#SECTION 2
+
 #Obtains different files for different Land Cover (aggregated) Class
 
 # Load the DK land Area with administrative boundaries vector layer and merge the administrative boundaries (https://data.humdata.org/dataset/kontur-boundaries-denmark)
@@ -67,6 +71,8 @@ output_path_CLC = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magi
 CLC_gdf.to_file(output_path)
 
 #%%
+#SECTION 3
+
 
 #Importing the file with municipalities of Denmark (https://ec.europa.eu/eurostat/web/gisco/geodata/statistical-units/local-administrative-units)
 output_path_CLC = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp'
@@ -166,24 +172,16 @@ CLC_on_water_gdf = filter_merge_save(CLC_gdf, 'Code_18', '4', on_water_filtered_
 CLC_water_bodies_gdf = filter_merge_save(CLC_gdf, 'Code_18', '5', water_bodies_filtered_path, water_bodies_merged_path)
 
 # Dictionary to store total area by region and land cover type
-area_by_municipality = Municipality_gdf[['NUTS_ID', 'geometry']].copy()  # Start with a copy of the regions GeoDataFrame
-area_by_municipality.set_index('NUTS_ID', inplace=True)  # Use region names as index for easy access
-
-# Define the different land cover types and their corresponding paths
-land_cover_data = {
-    "urban": CLC_urban_gdf,
-    "agricultural": CLC_agricultural_gdf,
-    "forest": CLC_forest_gdf,
-    "vegetation": CLC_on_vegetation_gdf,
-    "no_vegetation": CLC_on_no_vegetation_gdf,
-    "water": CLC_on_water_gdf,
-    "water_bodies": CLC_water_bodies_gdf
-}
+area_by_municipality = Municipality_gdf[['LAU_NAME', 'geometry']].copy()  # Start with a copy of the regions GeoDataFrame
+area_by_municipality.set_index('LAU_NAME', inplace=True)  # Use region names as index for easy access
 
 # Loop through each land cover type and calculate areas by region
 for cover_type, gdf in land_cover_data.items():
-    # Create a column to store area for this land cover type
-    area_by_municipality[f"{cover_type}_area_he"] = 0
+    column_name = f"{cover_type}_area_ha"
+
+    # Ensure the column exists and is of type float64
+    if column_name not in area_by_municipality.columns:
+        area_by_municipality[column_name] = 0.0  # Create column with initial value of 0.0
 
     # Run intersection and area calculation for each region
     for _, region in Municipality_gdf.iterrows():
@@ -208,31 +206,27 @@ for cover_type, gdf in land_cover_data.items():
             intersected_gdf = intersected_gdf.to_crs("EPSG:32633")  # Ensure the correct CRS
             
             # Calculate area in hectares for this land cover in this region
-            total_area_ha = intersected_gdf.geometry.area.sum()/10**4
-            area_by_municipality.loc[region_name, f"{cover_type}_area_he"] = total_area_ha
+            total_area_ha = intersected_gdf.geometry.area.sum() / 10**4
+            area_by_municipality.loc[region_name, column_name] = total_area_ha
 
-# Reset the index to have 'NUTS_ID' as a column
+# Reset the index to have 'LAU_NAME' as a column
 area_by_municipality.reset_index(inplace=True)
 
-# Ensure that numeric fields are stored with appropriate precision
-area_by_municipality = area_by_municipality.astype({
-    'urban_area_he': 'float64',
-    'agricultural_area_he': 'float64',
-    'forest_area_he': 'float64',
-    'vegetation_area_he': 'float64',
-    'no_vegetation_area_he': 'float64',
-    'water_area_he': 'float64',
-    'water_bodies_area_he': 'float64'
-})
+# Ensure numeric fields are stored with appropriate precision
+# Dynamically cast only existing columns to float64
+float_columns = [col for col in area_by_municipality.columns if col.endswith('_area_ha')]
+area_by_municipality[float_columns] = area_by_municipality[float_columns].astype(float)
 
 # Save to shapefile with appropriate precision
-output_path_area_by_municipality= r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
+output_path_area_by_municipality = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\municipalities_with_land_cover_areas.shp"
 area_by_municipality.to_file(output_path_area_by_municipality)
+
 #%%
+#SECTION 4
 
 # Read the shapefile with area data
-output_path_area_by_municipality = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
-area_by_municipality_gdf = gpd.read_file(output_path_area_by_municipality)
+output_path_area_by_municipality = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\municipalities_with_land_cover_areas.shp"
+area_by_municipality_gdf = gpd.read_file(output_path_area_by_municipality, encoding="utf-8")
 
 # Define columns with area data
 land_cover_columns = [
@@ -250,36 +244,132 @@ rename_map = {
     'no_vegetat': 'No Vegetation Area [ha]',
     'water_area': 'Water Area [ha]',
     'water_bodi': 'Water Bodies Area [ha]',
-    'NUTS_ID': 'NUTS ID'  
+    'LAU_NAME': 'Municipality',
+    'Market_Area': 'Power Market Area'   
 }
 
 # Create a table with NUTS ID and area columns
 area_table = area_by_municipality_gdf[land_cover_columns].copy()
-area_table['NUTS ID'] = area_by_municipality_gdf.NUTS_ID
-area_table = area_table[['NUTS ID'] + land_cover_columns]
-area_table.rename(columns=rename_map, inplace=True)
+area_table['LAU_NAME'] = area_by_municipality_gdf.LAU_NAME
+area_table = area_table[['LAU_NAME'] + land_cover_columns]
 
 # Define NUTS ID to region name mapping
-nuts_name_mapping = {
-    "DK01": "Capital Region of Denmark",
-    "DK02": "Region Zealand",
-    "DK03": "Region of Southern Denmark",
-    "DK04": "Central Denmark Region",
-    "DK05": "North Denmark Region",
-    # Add other mappings as necessary
+market_area_mapping = {
+    "Albertslund": "DK2",
+    "Allerød": "DK2",
+    "Assens": "DK1",
+    "Ballerup": "DK2",
+    "Billund": "DK1",
+    "Bornholm": "DK2",
+    "Brøndby": "DK2",
+    "Brønderslev": "DK1",
+    "Christiansø": "DK2",
+    "Dragør": "DK2",
+    "Egedal": "DK2",
+    "Esbjerg": "DK1",
+    "Fanø": "DK1",
+    "Favrskov": "DK1",
+    "Faxe": "DK2",
+    "Fredensborg": "DK2",
+    "Fredericia": "DK1",
+    "Frederiksberg": "DK2",
+    "Frederikshavn": "DK1",
+    "Frederikssund": "DK2",
+    "Furesø": "DK2",
+    "Faaborg-Midtfyn": "DK1",
+    "Gentofte": "DK2",
+    "Gladsaxe": "DK2",
+    "Glostrup": "DK2",
+    "Greve": "DK2",
+    "Gribskov": "DK2",
+    "Guldborgsund": "DK2",
+    "Haderslev": "DK1",
+    "Halsnæs": "DK2",
+    "Hedensted": "DK1",
+    "Helsingør": "DK2",
+    "Herlev": "DK2",
+    "Herning": "DK1",
+    "Hillerød": "DK2",
+    "Hjørring": "DK1",
+    "Holbæk": "DK2",
+    "Holstebro": "DK1",
+    "Horsens": "DK1",
+    "Hvidovre": "DK2",
+    "Høje-Taastrup": "DK2",
+    "Hørsholm": "DK2",
+    "Ikast-Brande": "DK1",
+    "Ishøj": "DK2",
+    "Jammerbugt": "DK1",
+    "Kalundborg": "DK2",
+    "Kerteminde": "DK1",
+    "Kolding": "DK1",
+    "København": "DK2",
+    "Køge": "DK2",
+    "Langeland": "DK1",
+    "Lejre": "DK2",
+    "Lemvig": "DK1",
+    "Lolland": "DK2",
+    "Lyngby-Taarbæk": "DK2",
+    "Læsø": "DK1",
+    "Mariagerfjord": "DK1",
+    "Middelfart": "DK1",
+    "Morsø": "DK1",
+    "Norddjurs": "DK1",
+    "Nordfyns": "DK1",
+    "Nyborg": "DK1",
+    "Næstved": "DK2",
+    "Odder": "DK1",
+    "Odense": "DK1",
+    "Odsherred": "DK2",
+    "Randers": "DK1",
+    "Rebild": "DK1",
+    "Ringkøbing-Skjern": "DK1",
+    "Ringsted": "DK2",
+    "Roskilde": "DK2",
+    "Rudersdal": "DK2",
+    "Rødovre": "DK2",
+    "Samsø": "DK1",
+    "Silkeborg": "DK1",
+    "Skanderborg": "DK1",
+    "Skive": "DK1",
+    "Slagelse": "DK2",
+    "Solrød": "DK2",
+    "Sorø": "DK2",
+    "Stevns": "DK2",
+    "Struer": "DK1",
+    "Svendborg": "DK1",
+    "Syddjurs": "DK1",
+    "Sønderborg": "DK1",
+    "Thisted": "DK1",
+    "Tønder": "DK1",
+    "Tårnby": "DK2",
+    "Vallensbæk": "DK2",
+    "Varde": "DK1",
+    "Vejen": "DK1",
+    "Vejle": "DK1",
+    "Vesthimmerlands": "DK1",
+    "Viborg": "DK1",
+    "Vordingborg": "DK2",
+    "Ærø": "DK1",
+    "Aabenraa": "DK1",
+    "Aalborg": "DK1",
+    "Aarhus": "DK1"
 }
 
 # Map the region names to a new column
-area_table['Region Name'] = area_table['NUTS ID'].map(nuts_name_mapping)
+area_table['Market_Area'] = area_table['LAU_NAME'].map(market_area_mapping)
 
 # Reorder columns to put Region Name first
-area_table = area_table[['Region Name', 'NUTS ID'] + [col for col in area_table.columns if col not in ['Region Name', 'NUTS ID']]]
+area_table = area_table[['LAU_NAME', 'Market_Area'] + [col for col in area_table.columns if col not in ['LAU_NAME', 'Market_Area']]]
+area_table.rename(columns=rename_map, inplace=True)
 
-# Export the table to a CSV file
+# Export the table to a CSV file with UTF-8 encoding
 output_table_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\land_cover_area_by_municipality.csv"
-area_table.to_csv(output_table_path, index=False)
+output_table_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\land_cover_area_by_municipality.csv"
+area_table.to_csv(output_table_path, index=False, encoding='utf-8-sig')
 
 #%%
+#SECTION 5
 
 #Importing Potected areas from Biodiversity Council (30% of the national area )
 
@@ -291,6 +381,9 @@ filtered_gdf = Biodiversity_30_gdf[Biodiversity_30_gdf['DN'] == 1]
 filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 
 #%%
+#SECTION 6
+
+
 # Importing the yields from FAO [kg DM/ha]
         
 wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200a_yld.tif') #potential yields, historical rcp
@@ -451,5 +544,3 @@ table_df = table_df[['Municipality', 'Power Market Area', 'Wheat [kgDW/ha]', 'Ba
 
 # Optionally, save to a CSV file
 table_df.to_csv(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\region_yields_table.csv', index=False)
-
-# %%
