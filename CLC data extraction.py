@@ -228,54 +228,56 @@ area_by_region = area_by_region.astype({
 # Save to shapefile with appropriate precision
 output_path_area_by_region= r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
 area_by_region.to_file(output_path_area_by_region)
-
-
 #%%
 
-# Create a new DataFrame from area_by_region that contains Region Name and Land Cover Area columns
-# Assuming `area_by_region` is the DataFrame holding the area information per region
+# Read the shapefile with area data
+output_path_area_by_region = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
+area_by_region_gdf = gpd.read_file(output_path_area_by_region)
 
-output_path_area_by_region= r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\regions_with_land_cover_areas.shp"
-area_by_region_gdf=gpd.read_file(output_path_area_by_region)
-
-
-# Extract the columns with area data (one per land cover type) and the region names
+# Define columns with area data
 land_cover_columns = [
-    'urban_area_he', 'agricultural_area_he', 'forest_area_he', 
-    'vegetation_area_he', 'no_vegetation_area_he', 'water_area_he', 
-    'water_bodies_area_he'
+    'urban_area', 'agricultur', 'forest_are', 
+    'vegetation', 'no_vegetat', 'water_area', 
+    'water_bodi'
 ]
 
+# Renaming columns for clarity
 rename_map = {
-    'urban_area_he': 'Urban Area [he]',
-    'agricultural_area_he': 'Agricultural Area [he]',
-    'forest_area_he': 'Forest Area [he]',
-    'vegetation_area_he': 'Vegetation Area [he]',
-    'no_vegetation_area_he': 'No Vegetation Area [he]',
-    'water_area_he': 'Water Area [he]',
-    'water_bodies_area_he': 'Water Bodies Area [he]',
-    'region_name': 'Region Name'  # Ensure consistent naming
+    'urban_area': 'Urban Area [ha]',
+    'agricultur': 'Agricultural Area [ha]',
+    'forest_are': 'Forest Area [ha]',
+    'vegetation': 'Vegetation Area [ha]',
+    'no_vegetat': 'No Vegetation Area [ha]',
+    'water_area': 'Water Area [ha]',
+    'water_bodi': 'Water Bodies Area [ha]',
+    'NUTS_ID': 'NUTS ID'  
 }
 
-# Create a new DataFrame with 'region_name' and corresponding area columns
+# Create a table with NUTS ID and area columns
 area_table = area_by_region_gdf[land_cover_columns].copy()
-
-# Add the region name as a new column
-area_table['region_name'] = area_by_region_gdf.NUTS_ID
-
-# Reorder the columns so 'region_name' is first
-area_table = area_table[['region_name'] + land_cover_columns]
-
-# Optionally, you can reset the index if needed (to make 'region_name' a regular column)
-area_table.reset_index(drop=True, inplace=True)
-
-# Apply the renaming
+area_table['NUTS ID'] = area_by_region_gdf.NUTS_ID
+area_table = area_table[['NUTS ID'] + land_cover_columns]
 area_table.rename(columns=rename_map, inplace=True)
+
+# Define NUTS ID to region name mapping
+nuts_name_mapping = {
+    "DK01": "Capital Region of Denmark",
+    "DK02": "Region Zealand",
+    "DK03": "Region of Southern Denmark",
+    "DK04": "Central Denmark Region",
+    "DK05": "North Denmark Region",
+    # Add other mappings as necessary
+}
+
+# Map the region names to a new column
+area_table['Region Name'] = area_table['NUTS ID'].map(nuts_name_mapping)
+
+# Reorder columns to put Region Name first
+area_table = area_table[['Region Name', 'NUTS ID'] + [col for col in area_table.columns if col not in ['Region Name', 'NUTS ID']]]
 
 # Export the table to a CSV file
 output_table_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\land_cover_area_by_region.csv"
 area_table.to_csv(output_table_path, index=False)
-
 
 #%%
 
@@ -291,9 +293,9 @@ filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 #%%
 # Importing the yields from FAO [kg DM/ha]
         
-wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200b_yld.tif') #potential yields
+wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\whea200a_yld.tif') #potential yields, historical rcp
 barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\barl200b_yld.tif')
-rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200a_yld.tif')
+rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\ryes200b_yld.tif')
 oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\oats200b_yld.tif')
 
 # Define the shapefile path
@@ -320,17 +322,44 @@ for field_name, raster_path in raster_paths.items():
     mean_values = [feature["properties"]["mean"] for feature in stats]
     regions_gdf[field_name] = mean_values
 
+# Define NUTS ID mapping based on region names
+nuts_id_mapping = {
+    "Central Denmark Region": "DK04",
+    "North Denmark Region": "DK05",
+    "Region of Southern Denmark": "DK03",
+    "Region Zealand": "DK02",
+    "Capital Region of Denmark": "DK01"
+}
+
+# Add NUTS ID column to the regions GeoDataFrame
+regions_gdf['NUTS_ID'] = regions_gdf['name_en'].map(nuts_id_mapping)
+
 # Save the output with added zonal statistics fields
 regions_gdf.to_file(output_path, driver="ESRI Shapefile")
-display(regions_gdf)
 
-# Create a new DataFrame with region names and crop potentials
-table_df = regions_gdf[["name_en", "wheat_pot", "barley_pot", "rye_pot", "oat_pot"]]
+# Create a new DataFrame with region names, crop potentials, and NUTS ID
+table_df = regions_gdf[["name_en", "wheat_pot", "barley_pot", "rye_pot", "oat_pot", "NUTS_ID"]]
 
-# Display the table
-print(table_df)
+# Rename the columns
+rename_map = {
+    'wheat_pot': 'Wheat [kgDW/ha]',
+    'barley_pot': 'Barley [kgDW/ha]',
+    'rye_pot': 'Rye [kgDW/ha]',
+    'oat_pot': 'Oat [kgDW/ha]',
+    'name_en': 'Region',
+    'NUTS_ID': 'NUTS ID'
+}
+
+# Apply the renaming
+table_df.rename(columns=rename_map, inplace=True)
+
+# Sort the table by NUTS ID (ascending order)
+table_df = table_df.sort_values(by="NUTS ID", ascending=True)
+
+# Reorder the columns to make NUTS ID the second column
+table_df = table_df[['Region', 'NUTS ID', 'Wheat [kgDW/ha]', 'Barley [kgDW/ha]', 'Rye [kgDW/ha]', 'Oat [kgDW/ha]']]
 
 # Optionally, save to a CSV file
 table_df.to_csv(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\region_yields_table.csv', index=False)
 
-#%%
+# %%
