@@ -383,8 +383,8 @@ filtered_gdf = Biodiversity_30_gdf[Biodiversity_30_gdf['DN'] == 1]
 filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
 
 #%%
-#SECTION 6
-
+#SECTION 6.1
+#Compuutes the average yield for each municipality
 
 # Importing the yields from FAO [kg DM/ha]
         
@@ -615,3 +615,55 @@ table_df = table_df[['Municipality', 'Power Market Area', 'Wheat [kgDW/ha]', 'Ba
 table_df.to_csv(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\region_yields_table.csv', index=False, encoding='utf-8-sig')
 
  # %%
+#SECTION 6.2
+#Computes the national average of yields and then assigns them to each municipality
+
+wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Wheat_clip.tif') #potential yields, historical rcp
+barley_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Barley_clip.tif')
+rye_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Rye_clip.tif')
+oat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Oats_clip.tif')
+
+DKLand_gdf=gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_merged.shp')
+
+# Define file paths
+wheat_raster_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Wheat_clip.tif'
+barley_raster_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Barley_clip.tif'
+rye_raster_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Rye_clip.tif'
+oat_raster_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Oats_clip.tif'
+
+DKLand_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\OCHA_Administrative_Boundaries\Danish_Land_merged.shp')
+
+# Function to calculate zonal statistics
+def calculate_average(raster_path, gdf):
+    stats = zonal_stats(gdf, raster_path, stats=['mean'], geojson_out=True)
+    # Extract mean values for each polygon
+    mean_values = [feature['properties']['mean'] for feature in stats]
+    return mean_values
+
+# Calculate averages for each crop
+wheat_avg = calculate_average(wheat_raster_path, DKLand_gdf)
+barley_avg = calculate_average(barley_raster_path, DKLand_gdf)
+rye_avg = calculate_average(rye_raster_path, DKLand_gdf)
+oat_avg = calculate_average(oat_raster_path, DKLand_gdf)
+
+# Combine results into a single table
+data = {
+    'Crop': ['Wheat', 'Barley', 'Rye', 'Oat'],
+    'Average': [
+        sum(wheat_avg) / len(wheat_avg),
+        sum(barley_avg) / len(barley_avg),
+        sum(rye_avg) / len(rye_avg),
+        sum(oat_avg) / len(oat_avg)
+    ]
+}
+
+# Convert to a DataFrame
+average_table = pd.DataFrame(data)
+
+# Save results to a CSV file
+output_path = r'C:\Users\Utente\average_crop_yields.csv'
+average_table.to_csv(output_path, index=False)
+
+# Print the resulting table
+print(average_table)
+# %%
