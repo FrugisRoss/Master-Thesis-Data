@@ -388,6 +388,28 @@ market_area_mapping = {
     "Aarhus": "DK1"
 }
 
+
+
+# Define the desired order of municipalities
+desired_order = [
+    "Albertslund", "Allerød", "Assens", "Ballerup", "Billund", "Bornholm", "Brøndby", "Brønderslev",
+    "Christiansø", "Dragør", "Egedal", "Esbjerg", "Fanø", "Favrskov", "Faxe", "Fredensborg", "Fredericia",
+    "Frederiksberg", "Frederikshavn", "Frederikssund", "Furesø", "Faaborg-Midtfyn", "Gentofte", "Gladsaxe",
+    "Glostrup", "Greve", "Gribskov", "Guldborgsund", "Haderslev", "Halsnæs", "Hedensted", "Helsingør",
+    "Herlev", "Herning", "Hillerød", "Hjørring", "Holbæk", "Holstebro", "Horsens", "Hvidovre", "Høje-Taastrup",
+    "Hørsholm", "Ikast-Brande", "Ishøj", "Jammerbugt", "Kalundborg", "Kerteminde", "Kolding", "København",
+    "Køge", "Langeland", "Lejre", "Lemvig", "Lolland", "Lyngby-Taarbæk", "Læsø", "Mariagerfjord", "Middelfart",
+    "Morsø", "Norddjurs", "Nordfyns", "Nyborg", "Næstved", "Odder", "Odense", "Odsherred", "Randers", "Rebild",
+    "Ringkøbing-Skjern", "Ringsted", "Roskilde", "Rudersdal", "Rødovre", "Samsø", "Silkeborg", "Skanderborg",
+    "Skive", "Slagelse", "Solrød", "Sorø", "Stevns", "Struer", "Svendborg", "Syddjurs", "Sønderborg", "Thisted",
+    "Tønder", "Tårnby", "Vallensbæk", "Varde", "Vejen", "Vejle", "Vesthimmerlands", "Viborg", "Vordingborg",
+    "Ærø", "Aabenraa", "Aalborg", "Aarhus"
+]
+
+# Ensure the DataFrame is ordered according to the desired order
+area_table['LAU_NAME'] = pd.Categorical(area_table['LAU_NAME'], categories=desired_order, ordered=True)
+area_table = area_table.sort_values('LAU_NAME')
+
 # Map the region names to a new column
 area_table['Market_Area'] = area_table['LAU_NAME'].map(market_area_mapping)
 
@@ -396,7 +418,6 @@ area_table = area_table[['LAU_NAME', 'Market_Area'] + [col for col in area_table
 area_table.rename(columns=rename_map, inplace=True)
 
 # Export the table to a CSV file with UTF-8 encoding
-output_table_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\land_cover_area_by_municipality.csv"
 output_table_path = r"C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\land_cover_area_by_municipality.csv"
 area_table.to_csv(output_table_path, index=False, encoding='utf-8-sig')
 
@@ -411,9 +432,90 @@ Bio30_path =r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale
 filtered_gdf = Biodiversity_30_gdf[Biodiversity_30_gdf['DN'] == 1]
 
 filtered_gdf.to_file(Bio30_path, driver='ESRI Shapefile')
-
- # %%
+#%%
 #SECTION 7
+Bio30_path =r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\Biodiversity30.shp'
+Bio_30_gdf= gpd.read_file(Bio30_path)
+
+# Definition of paths to save each CLC aggregation cathegory output
+urban_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Urban_Areas_Merged.shp'
+
+agricultural_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
+
+forest_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Forest_Areas_Merged.shp'
+
+on_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_vegetation_Areas_Merged.shp'
+
+on_no_vegetation_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_no_vegetation_Areas_Merged.shp'
+
+on_water_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\ON_water_Areas_Merged.shp'
+
+water_bodies_merged_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Water_Bodies_Areas_Merged.shp'
+
+urban_gdf = gpd.read_file(urban_merged_path)
+agricultural_gdf = gpd.read_file(agricultural_merged_path)
+forest_gdf = gpd.read_file(forest_merged_path)
+on_vegetation_gdf = gpd.read_file(on_vegetation_merged_path)
+on_no_vegetation_gdf = gpd.read_file(on_no_vegetation_merged_path)
+on_water_gdf = gpd.read_file(on_water_merged_path)
+water_bodies_gdf = gpd.read_file(water_bodies_merged_path)
+
+
+def check_crs(gdf, expected_crs):
+    if gdf.crs.to_epsg() != expected_crs:
+        print(f"CRS mismatch: Converting from {gdf.crs.to_epsg()} to {expected_crs}")
+        gdf = gdf.to_crs(epsg=expected_crs)
+    else:
+        print(f"CRS check passed for {gdf}")
+    return gdf
+
+# Define the expected CRS
+expected_crs = 3035
+
+# Check CRS for each GeoDataFrame
+check_crs(urban_gdf, expected_crs)
+check_crs(agricultural_gdf, expected_crs)
+check_crs(forest_gdf, expected_crs)
+check_crs(on_vegetation_gdf, expected_crs)
+check_crs(on_no_vegetation_gdf, expected_crs)
+check_crs(on_water_gdf, expected_crs)
+check_crs(water_bodies_gdf, expected_crs)
+check_crs(Bio_30_gdf, expected_crs)
+
+# Intersect Bio_30_gdf with each GeoDataFrame
+urban_intersection = gpd.overlay(Bio_30_gdf, urban_gdf, how='intersection')
+agricultural_intersection = gpd.overlay(Bio_30_gdf, agricultural_gdf, how='intersection')
+forest_intersection = gpd.overlay(Bio_30_gdf, forest_gdf, how='intersection')
+on_vegetation_intersection = gpd.overlay(Bio_30_gdf, on_vegetation_gdf, how='intersection')
+on_no_vegetation_intersection = gpd.overlay(Bio_30_gdf, on_no_vegetation_gdf, how='intersection')
+on_water_intersection = gpd.overlay(Bio_30_gdf, on_water_gdf, how='intersection')
+water_bodies_intersection = gpd.overlay(Bio_30_gdf, water_bodies_gdf, how='intersection')
+
+def compute_areas(gdf):
+    gdf['area'] = gdf.geometry.area
+    return gdf['area'].sum()
+
+# List of intersection GeoDataFrames and their names
+intersection_gdfs = [
+    ('urban_intersection', urban_intersection),
+    ('agricultural_intersection', agricultural_intersection),
+    ('forest_intersection', forest_intersection),
+    ('on_vegetation_intersection', on_vegetation_intersection),
+    ('on_no_vegetation_intersection', on_no_vegetation_intersection),
+    ('on_water_intersection', on_water_intersection),
+    ('water_bodies_intersection', water_bodies_intersection)
+]
+
+# Compute areas and create a table
+areas = []
+for name, gdf in intersection_gdfs:
+    area = compute_areas(gdf)
+    areas.append((name, area))
+
+# Create a DataFrame to display the results
+areas_df = pd.DataFrame(areas, columns=['Intersection_GDF', 'Area'])
+  # %%
+#SECTION 8
 #Computes the national average of yields and then assigns them to each municipality
 
 wheat_raster_path=(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\FAO\Wheat_clip.tif') #potential yields, historical rcp
@@ -578,3 +680,61 @@ export_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
 
 
 # %%
+#SECTION 9
+
+Municipality_gdf= gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp')
+CRS_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Tekstur2014\Tekstur2014.shp')
+Agricultural_areas_gdf = gpd.read_file(r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp')
+
+# Ensure all GeoDataFrames have the same CRS
+if Municipality_gdf.crs != CRS_gdf.crs:
+    CRS_gdf = CRS_gdf.to_crs(Municipality_gdf.crs)
+
+if Agricultural_areas_gdf.crs != Municipality_gdf.crs:
+    Agricultural_areas_gdf = Agricultural_areas_gdf.to_crs(Municipality_gdf.crs)
+
+# If the CRS is not projected, reproject to a suitable projected CRS
+if not Municipality_gdf.crs.is_projected:
+    Municipality_gdf = Municipality_gdf.to_crs(epsg=3035)
+    CRS_gdf = CRS_gdf.to_crs(epsg=3035)
+    Agricultural_areas_gdf = Agricultural_areas_gdf.to_crs(epsg=3035)
+
+# Perform intersection to keep only the parts of CRS_gdf that intersect with Agricultural_areas_gdf
+intersected_gdf = gpd.overlay(CRS_gdf, Agricultural_areas_gdf, how='intersection')
+
+# Clip the intersected_gdf with the Municipality_gdf
+clipped_gdf = gpd.clip(intersected_gdf, Municipality_gdf)
+
+# Compute the area for each municipality
+clipped_gdf['area'] = clipped_gdf.geometry.area/10**4
+
+# Group by 'LAU_NAME' and sum the areas
+area_per_municipality = clipped_gdf.groupby(Municipality_gdf['LAU_NAME'])['area'].sum().reset_index()
+
+# Reorder the municipalities
+desired_order = [
+    "Albertslund", "Allerød", "Assens", "Ballerup", "Billund", "Bornholm", "Brøndby", "Brønderslev",
+    "Christiansø", "Dragør", "Egedal", "Esbjerg", "Fanø", "Favrskov", "Faxe", "Fredensborg", "Fredericia",
+    "Frederiksberg", "Frederikshavn", "Frederikssund", "Furesø", "Faaborg-Midtfyn", "Gentofte", "Gladsaxe",
+    "Glostrup", "Greve", "Gribskov", "Guldborgsund", "Haderslev", "Halsnæs", "Hedensted", "Helsingør",
+    "Herlev", "Herning", "Hillerød", "Hjørring", "Holbæk", "Holstebro", "Horsens", "Hvidovre", "Høje-Taastrup",
+    "Hørsholm", "Ikast-Brande", "Ishøj", "Jammerbugt", "Kalundborg", "Kerteminde", "Kolding", "København",
+    "Køge", "Langeland", "Lejre", "Lemvig", "Lolland", "Lyngby-Taarbæk", "Læsø", "Mariagerfjord", "Middelfart",
+    "Morsø", "Norddjurs", "Nordfyns", "Nyborg", "Næstved", "Odder", "Odense", "Odsherred", "Randers", "Rebild",
+    "Ringkøbing-Skjern", "Ringsted", "Roskilde", "Rudersdal", "Rødovre", "Samsø", "Silkeborg", "Skanderborg",
+    "Skive", "Slagelse", "Solrød", "Sorø", "Stevns", "Struer", "Svendborg", "Syddjurs", "Sønderborg", "Thisted",
+    "Tønder", "Tårnby", "Vallensbæk", "Varde", "Vejen", "Vejle", "Vesthimmerlands", "Viborg", "Vordingborg",
+    "Ærø", "Aabenraa", "Aalborg", "Aarhus"
+]
+
+# Create a DataFrame with the desired order
+ordered_df = pd.DataFrame({'LAU_NAME': desired_order})
+
+# Merge with the area data
+result_df = ordered_df.merge(area_per_municipality, on='LAU_NAME', how='left')
+
+# Export to CSV
+csv_output_path = r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\CRS_area.csv'
+result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
+
+ # %%
