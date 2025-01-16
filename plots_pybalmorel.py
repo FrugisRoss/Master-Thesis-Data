@@ -18,7 +18,7 @@ import gams
 
 ws = gams.GamsWorkspace()
 
-res = MainResults(files='MainResults.gdx', paths=r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Base_Case_prova_runningwith the excel\model', scenario_names=['Base'])
+res = MainResults(files='MainResults.gdx', paths=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\CO2_Case\model', scenario_names=['Base'])
 
 df = res.get_result('PRO_YCRAGF')
 print(df)
