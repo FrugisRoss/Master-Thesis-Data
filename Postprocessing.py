@@ -20,6 +20,10 @@ import matplotlib.pyplot as plt
 MainResults_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\MainResults.gdx'
 OptiflowMR_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\Optiflow_MainResults.gdx'
 
+Resource_name = {'Biomass_for_use':'Biomass',
+               'Hydrogen_Use':'Hydrogen',
+               'CO2_Use':'CO2'}
+
 Demands_name= {'Sea_fuels_sum':'Maritime demand',
                'Road_fuels_sum':'Road demand',
                'Air_fuels_sum':'Air demand'}
@@ -45,9 +49,9 @@ def Import_OptiflowMR(file_path):
 
     return df_FLOWA, df_FLOWC
 
-def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name, year):
+def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name, Resource_name, year, plot_title):
     df_FLOWA, df_FLOWC = Import_OptiflowMR(OptiflowMR_path)
-    print (df_FLOWC)
+    print(df_FLOWC)
 
     # Filter df_FLOWC to include only the rows with 'Y' equal to the specified year
     df_FLOWC = df_FLOWC[df_FLOWC['Y'] == str(year)]
@@ -64,7 +68,16 @@ def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name
     # Aggregate the values by 'Demand' and 'Fuel'
     aggregated_df = filtered_df.groupby(['Demand', 'Fuel'])['value'].sum().reset_index()
 
-    # Define a color map for the fuels
+    # Filter df_FLOWC to include only the rows with 'IPROCFROM' in Resource_name
+    resource_df = df_FLOWC[df_FLOWC['IPROCFROM'].isin(Resource_name.keys())]
+
+    # Map the 'IPROCFROM' values to their corresponding resource names
+    resource_df['Resource'] = resource_df['IPROCFROM'].map(Resource_name)
+
+    # Aggregate the values by 'Resource'
+    aggregated_resource_df = resource_df.groupby(['Resource'])['value'].sum().reset_index()
+
+    # Define a color map for the fuels and resources
     color_map = {
         'Ammonia': '#1f77b4',
         'Methanol': '#ff7f0e',
@@ -75,12 +88,16 @@ def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name
         'E-Diesel': '#e377c2',
         'Biojet': '#7f7f7f',
         'E-Jet-FT': '#bcbd22',
-        'E-Jet-ME': '#17becf'
+        'E-Jet-ME': '#17becf',
+        'Biomass': '#006600',
+        'Hydrogen': '#009999',
+        'CO2': '#4D4D4D'
     }
-    # Create the figure
-    fig = go.Figure()
 
-    # Add traces to the figure
+    # Create the figure
+    fig = make_subplots(rows=1, cols=2, shared_yaxes=True, subplot_titles=('Fuel Supply', 'Resource Use'))
+
+    # Add traces to the figure for fuel supply
     for fuel in aggregated_df['Fuel'].unique():
         df_fuel = aggregated_df[aggregated_df['Fuel'] == fuel]
         fig.add_trace(go.Bar(
@@ -88,21 +105,42 @@ def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name
             y=df_fuel['value'],
             name=fuel,
             marker_color=color_map.get(fuel, '#333333')
-        ))
+        ), row=1, col=1)
+
+    # Add traces to the figure for resource use
+    for resource in aggregated_resource_df['Resource'].unique():
+        df_resource = aggregated_resource_df[aggregated_resource_df['Resource'] == resource]
+        fig.add_trace(go.Bar(
+            x=[resource],
+            y=[-df_resource['value'].values[0]],  # Negative values for resource use
+            name=resource,
+            marker_color=color_map.get(resource, '#333333')
+        ), row=1, col=2)
 
     # Update the layout of the figure
     fig.update_layout(
-        title=f'Fuel supply year {year}',
-        xaxis_title='Demand',
-        yaxis_title='Demand',
-        barmode='stack'
+        title=plot_title,
+        xaxis_title_text='Demand',
+        yaxis_title='PJ',
+        barmode='stack',
+        yaxis=dict(
+            tickmode='linear',
+            tick0=0,
+            dtick=25
+        )
     )
+
+    # Update the x-axis title for the Resource Use subplot
+    fig.update_xaxes(title_text='Resource', row=1, col=2)
+
+    # Update the y-axis for the Resource Use subplot
+    fig.update_yaxes(tickmode='linear', tick0=0, dtick=25, row=1, col=2)
 
     # Show the figure
     fig.show()
 
 
-Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name, 2050 )
+Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name,Resource_name, 2050, 'Base Case')
 # %%
 
 def plot_municipalities(df, shapefile_path, column_municipality, column_value, filter_column, filter_value, plot_title, cmap):
