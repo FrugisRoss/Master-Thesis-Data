@@ -84,8 +84,8 @@ def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name
     for fuel in aggregated_df['Fuel'].unique():
         df_fuel = aggregated_df[aggregated_df['Fuel'] == fuel]
         fig.add_trace(go.Bar(
-            x=df_fuel['Sector'],
-            y=df_fuel['Fuel Demand'],
+            x=df_fuel['Demand'],
+            y=df_fuel['value'],
             name=fuel,
             marker_color=color_map.get(fuel, '#333333')
         ))

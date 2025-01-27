@@ -520,11 +520,32 @@ intersection_gdfs = [
     ('water_bodies_intersection', water_bodies_intersection)
 ]
 
+agricultural_intersection.to_file(r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\agricultural_intersection.shp')
+
 # Compute areas and create a table
 areas = []
 for name, gdf in intersection_gdfs:
     area = compute_areas(gdf)
     areas.append((name, area))
+
+# Create a DataFrame to display the results
+areas_df = pd.DataFrame(areas, columns=['Intersection_GDF', 'Area'])
+
+# Load the CRS_gdf
+CRS_gdf = gpd.read_file(r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Tekstur2014\Tekstur2014.shp')
+
+# Compute the intersection
+intersection_gdf = gpd.overlay(agricultural_intersection, CRS_gdf, how='intersection')
+
+# Compute areas and create a table
+areas = []
+for name, gdf in intersection_gdfs:
+    area = compute_areas(gdf)
+    areas.append((name, area))
+
+# Add the computed areas for the new intersection
+intersection_area = compute_areas(intersection_gdf)
+areas.append(('agricultural_intersection_CRS', intersection_area))
 
 # Create a DataFrame to display the results
 areas_df = pd.DataFrame(areas, columns=['Intersection_GDF', 'Area'])
@@ -787,13 +808,7 @@ Municipality_gdf['geometry'] = Municipality_gdf['geometry'].simplify(tolerance, 
 CRS_gdf['geometry'] = CRS_gdf['geometry'].simplify(tolerance, preserve_topology=True)
 Agricultural_areas_gdf['geometry'] = Agricultural_areas_gdf['geometry'].simplify(tolerance, preserve_topology=True)
 
-# Build spatial indices (optional, GeoPandas does this automatically but can be referenced)
-print("Building spatial indices...")
-Municipality_sindex = Municipality_gdf.sindex
-CRS_sindex = CRS_gdf.sindex
-Agricultural_sindex = Agricultural_areas_gdf.sindex
-
-# Perform spatial join instead of overlay for faster intersection
+# Perform spatial join between CRS_gdf and Agricultural_areas_gdf for intersection
 print("Performing spatial join between CRS and Agricultural Areas...")
 intersected_gdf = gpd.sjoin(CRS_gdf, Agricultural_areas_gdf, how='inner', predicate='intersects')
 
@@ -803,6 +818,13 @@ intersected_gdf = intersected_gdf.drop(columns=['index_right'])
 # Clip the intersected_gdf with the Municipality_gdf
 print("Clipping intersected geometries with Municipality boundaries...")
 clipped_gdf = gpd.clip(intersected_gdf, Municipality_gdf)
+
+# Perform spatial join to add 'LAU_NAME' from Municipality_gdf to clipped_gdf
+print("Performing spatial join to attach 'LAU_NAME'...")
+clipped_gdf = gpd.sjoin(clipped_gdf, Municipality_gdf[['LAU_NAME', 'geometry']], how='left', predicate='within')
+
+# Drop unnecessary columns resulting from the spatial join
+clipped_gdf = clipped_gdf.drop(columns=['index_right'])
 
 # Compute the area for each geometry in hectares (assuming CRS units are meters)
 print("Calculating areas...")
@@ -845,5 +867,4 @@ print(f"Exporting results to CSV at {csv_output_path}...")
 result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
 
 print("Processing complete.")
-
 # %%
