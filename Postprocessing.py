@@ -17,8 +17,8 @@ from sklearn.metrics import r2_score
 import geopandas as gpd
 import matplotlib.pyplot as plt
 
-MainResults_path=r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Base_Case_runhpc_correct\model\MainResults.gdx'
-OptiflowMR_path=r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Base_Case_runhpc_correct\model\Optiflow_MainResults.gdx'
+MainResults_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\MainResults.gdx'
+OptiflowMR_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\Optiflow_MainResults.gdx'
 
 Demands_name= {'Sea_fuels_sum':'Maritime demand',
                'Road_fuels_sum':'Road demand',
@@ -84,8 +84,8 @@ def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name
     for fuel in aggregated_df['Fuel'].unique():
         df_fuel = aggregated_df[aggregated_df['Fuel'] == fuel]
         fig.add_trace(go.Bar(
-            x=df_fuel['Demand'],
-            y=df_fuel['value'],
+            x=df_fuel['Sector'],
+            y=df_fuel['Fuel Demand'],
             name=fuel,
             marker_color=color_map.get(fuel, '#333333')
         ))
@@ -94,7 +94,7 @@ def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name
     fig.update_layout(
         title=f'Fuel supply year {year}',
         xaxis_title='Demand',
-        yaxis_title='Value',
+        yaxis_title='Demand',
         barmode='stack'
     )
 
@@ -242,14 +242,15 @@ def plot_municipalities(df, shapefile_path, column_municipality, column_value, f
     plt.show()
 
 df_FLOWA, df_FLOWC = Import_OptiflowMR(OptiflowMR_path)
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM',filter_value='Straw_for_Energy', plot_title='Straw for Energy in Denmark', cmap='Reds')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Wood_for_Energy', plot_title='Wood for Energy in Denmark', cmap='Greens')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Productive_Forest_Land_Gen', plot_title='Productive Forest in Denmark', cmap='Blues')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\Utente\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Agricultural_Land_Gen', plot_title='Agricultural Land in Denmark', cmap='Grays')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM',filter_value='Straw_for_Energy', plot_title='Straw for Energy in Denmark', cmap='Reds')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Wood_for_Energy', plot_title='Wood for Energy in Denmark', cmap='Greens')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Productive_Forest_Land_Gen', plot_title='Productive Forest in Denmark', cmap='Blues')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Agricultural_Land_Gen', plot_title='Agricultural Land in Denmark', cmap='Grays')
 
 # %%
 # Filter the DataFrame for the specified IPROCFROM values
-filtered_df = df_FLOWC[df_FLOWC['IPROCFROM'].isin(['Agricultural_Land_Gen', 'Productive_Forest_Land_Gen', 'Wood_for_Energy', 'Straw_for_Energy'])]
+filtered_df = df_FLOWC[df_FLOWC['IPROCFROM'].isin(['Agricultural_Land_Gen', 'Productive_Forest_Land', 'Wood_for_Energy', 'Straw_for_Energy'])]
 
 # Print the 'value' column for the filtered rows
 print(filtered_df[['IPROCFROM', 'value']])
+# %%

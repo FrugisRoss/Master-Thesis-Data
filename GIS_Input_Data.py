@@ -176,9 +176,9 @@ water_bodies_merged_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\pol
 
 # Define the values for each category
 urban_values = ['111', '112', '121', '122', '123', '124', '131', '132', '133', '141', '142']
-agricultural_values = ['211', '212', '213', '221', '222', '223', '231']
+agricultural_values = ['211', '212', '213', '221', '222', '223', '231','243']
 forest_values = ['311', '312', '313', '244']
-on_vegetation_values = ['321', '322', '323', '324', '241', '242', '243']
+on_vegetation_values = ['321', '322', '323', '324', '241', '242']
 on_no_vegetation_values = ['331', '332', '333', '334', '335']
 on_water_values = ['411', '412', '421', '422', '423']
 water_bodies_values = ['511', '512', '521', '522', '523']
@@ -752,3 +752,98 @@ csv_output_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magis
 result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
 
  # %%
+
+# SECTION 9.1
+
+# Define file paths
+municipality_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp'
+crs_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Tekstur2014\Tekstur2014.shp'
+agri_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
+csv_output_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\CRS_area.csv'
+
+# Read only necessary columns to save memory
+print("Reading Municipality data...")
+Municipality_gdf = gpd.read_file(municipality_fp, usecols=['LAU_NAME', 'geometry'])
+
+print("Reading CRS data...")
+CRS_gdf = gpd.read_file(crs_fp, usecols=['geometry'])  # Add other necessary columns if needed
+
+print("Reading Agricultural Areas data...")
+Agricultural_areas_gdf = gpd.read_file(agri_fp, usecols=['geometry'])  # Add other necessary columns if needed
+
+# Define target CRS
+target_crs = 'EPSG:3035'
+
+# Reproject all GeoDataFrames to target CRS if not already
+print("Reprojecting GeoDataFrames to target CRS...")
+Municipality_gdf = Municipality_gdf.to_crs(target_crs)
+CRS_gdf = CRS_gdf.to_crs(target_crs)
+Agricultural_areas_gdf = Agricultural_areas_gdf.to_crs(target_crs)
+
+# Simplify geometries to speed up processing (adjust tolerance as needed)
+tolerance = 100  # in CRS units (meters for EPSG:3035)
+print(f"Simplifying geometries with tolerance={tolerance} meters...")
+Municipality_gdf['geometry'] = Municipality_gdf['geometry'].simplify(tolerance, preserve_topology=True)
+CRS_gdf['geometry'] = CRS_gdf['geometry'].simplify(tolerance, preserve_topology=True)
+Agricultural_areas_gdf['geometry'] = Agricultural_areas_gdf['geometry'].simplify(tolerance, preserve_topology=True)
+
+# Build spatial indices (optional, GeoPandas does this automatically but can be referenced)
+print("Building spatial indices...")
+Municipality_sindex = Municipality_gdf.sindex
+CRS_sindex = CRS_gdf.sindex
+Agricultural_sindex = Agricultural_areas_gdf.sindex
+
+# Perform spatial join instead of overlay for faster intersection
+print("Performing spatial join between CRS and Agricultural Areas...")
+intersected_gdf = gpd.sjoin(CRS_gdf, Agricultural_areas_gdf, how='inner', predicate='intersects')
+
+# Drop the index_right column added by sjoin
+intersected_gdf = intersected_gdf.drop(columns=['index_right'])
+
+# Clip the intersected_gdf with the Municipality_gdf
+print("Clipping intersected geometries with Municipality boundaries...")
+clipped_gdf = gpd.clip(intersected_gdf, Municipality_gdf)
+
+# Compute the area for each geometry in hectares (assuming CRS units are meters)
+print("Calculating areas...")
+clipped_gdf['area'] = clipped_gdf.geometry.area / 10**4  # Converts m² to hectares
+
+# Group by 'LAU_NAME' and sum the areas
+print("Aggregating area per municipality...")
+area_per_municipality = clipped_gdf.groupby('LAU_NAME')['area'].sum().reset_index()
+
+# Define the desired order of municipalities
+desired_order = [
+    "Albertslund", "Allerød", "Assens", "Ballerup", "Billund", "Bornholm", "Brøndby", "Brønderslev",
+    "Christiansø", "Dragør", "Egedal", "Esbjerg", "Fanø", "Favrskov", "Faxe", "Fredensborg", "Fredericia",
+    "Frederiksberg", "Frederikshavn", "Frederikssund", "Furesø", "Faaborg-Midtfyn", "Gentofte", "Gladsaxe",
+    "Glostrup", "Greve", "Gribskov", "Guldborgsund", "Haderslev", "Halsnæs", "Hedensted", "Helsingør",
+    "Herlev", "Herning", "Hillerød", "Hjørring", "Holbæk", "Holstebro", "Horsens", "Hvidovre", "Høje-Taastrup",
+    "Hørsholm", "Ikast-Brande", "Ishøj", "Jammerbugt", "Kalundborg", "Kerteminde", "Kolding", "København",
+    "Køge", "Langeland", "Lejre", "Lemvig", "Lolland", "Lyngby-Taarbæk", "Læsø", "Mariagerfjord", "Middelfart",
+    "Morsø", "Norddjurs", "Nordfyns", "Nyborg", "Næstved", "Odder", "Odense", "Odsherred", "Randers", "Rebild",
+    "Ringkøbing-Skjern", "Ringsted", "Roskilde", "Rudersdal", "Rødovre", "Samsø", "Silkeborg", "Skanderborg",
+    "Skive", "Slagelse", "Solrød", "Sorø", "Stevns", "Struer", "Svendborg", "Syddjurs", "Sønderborg", "Thisted",
+    "Tønder", "Tårnby", "Vallensbæk", "Varde", "Vejen", "Vejle", "Vesthimmerlands", "Viborg", "Vordingborg",
+    "Ærø", "Aabenraa", "Aalborg", "Aarhus"
+]
+
+# Create a DataFrame with the desired order
+print("Creating ordered DataFrame...")
+ordered_df = pd.DataFrame({'LAU_NAME': desired_order})
+
+# Merge with the area data, filling missing values with 0
+print("Merging aggregated areas with ordered municipalities...")
+result_df = ordered_df.merge(area_per_municipality, on='LAU_NAME', how='left').fillna({'area': 0})
+
+# Optionally, ensure the order is maintained as per desired_order
+result_df['LAU_NAME'] = pd.Categorical(result_df['LAU_NAME'], categories=desired_order, ordered=True)
+result_df = result_df.sort_values('LAU_NAME')
+
+# Export to CSV
+print(f"Exporting results to CSV at {csv_output_path}...")
+result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
+
+print("Processing complete.")
+
+# %%
