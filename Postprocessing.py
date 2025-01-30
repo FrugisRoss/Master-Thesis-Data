@@ -53,7 +53,8 @@ def Import_OptiflowMR(file_path):
 def Import_BalmorelMR(file_path):
     df = gt.Container(file_path)
     df_CC_YCRAG = pd.DataFrame(df["CC_YCRAG"].records)
-    return df_CC_YCRAG
+    df_F_CONS_YCRA = pd.DataFrame(df["F_CONS_YCRA"].records)
+    return df_CC_YCRAG, df_F_CONS_YCRA
 
 def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name, Resource_name, year, plot_title):
     df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
@@ -436,10 +437,243 @@ def plot_3col_stacked_no_sum(df_agg, plot_title="Three-Column Emissions"):
 
     fig.show()
 
-df_CC_YCRAG = Import_BalmorelMR(MainResults_path)
+df_CC_YCRAG, df_F_CONS_YCRA = Import_BalmorelMR(MainResults_path)
 df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
 df_agg=group_EMI_YCRAG(df_EMI_YCRAG, df_CC_YCRAG, df_FLOWC)
 plot_3col_stacked_no_sum(df_agg, 'Emissions by Category')
+
+#%%
+
+df_CC_YCRAG, df_F_CONS_YCRA = Import_BalmorelMR(MainResults_path)
+df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
+
+def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
+    """
+    1) From df_FLOWC, select rows that satisfy ANY of:
+       - IPROCTO ∈ ['Straw_for_Energy','Wood_for_Energy']
+       - IPROCFROM ∈ ['Straw_for_Energy','Wood_for_Energy'] 
+         AND FLOW ∈ ['STRAW_FLOW','WOOD_FLOW']
+       - IPROCFROM = 'Wood_Pellets_Gen'
+
+       => Return them as df_flowc_filtered.
+
+    2) From df_F_CONS_YCRA, select rows with FFF ∈ ['WOODCHIPS','STRAW','WOODPELLETS'].
+       - Multiply the 'value' column by 3.6 for these filtered rows.
+       - Add a column 'Category':
+           - 'Industry Heating'         if AAA contains 'IND'
+           - 'Individual Users Heating' if AAA contains 'IDVU'
+           - 'CHP Generation'           otherwise
+
+       => Return as df_f_cons_filtered (WITHOUT aggregation).
+
+    Returns:
+      df_flowc_filtered, df_f_cons_filtered
+    """
+
+    # -------------------------------------
+    # A) Filter df_FLOWC
+    # -------------------------------------
+    mask_iprocto = df_FLOWC['IPROCTO'].isin([
+        'Straw_for_Energy', 
+        'Wood_for_Energy'
+    ])
+    
+    mask_iprocfrom_flow = (
+        df_FLOWC['IPROCFROM'].isin(['Straw_for_Energy','Wood_for_Energy'])
+        & df_FLOWC['FLOW'].isin(['STRAW_FLOW','WOOD_FLOW'])
+    )
+    
+    mask_iprocfrom_pellets = (df_FLOWC['IPROCFROM'] == 'Wood_Pellets_Gen')
+    
+    # Combine conditions with OR
+    df_flowc_filtered = df_FLOWC[
+        mask_iprocto | mask_iprocfrom_flow | mask_iprocfrom_pellets
+    ].copy()
+
+    # -------------------------------------
+    # B) Filter df_F_CONS_YCRA
+    # -------------------------------------
+    df_f_cons_filtered = df_F_CONS_YCRA[
+        df_F_CONS_YCRA['FFF'].isin(['WOODCHIPS', 'STRAW', 'WOODPELLETS'])
+    ].copy()
+
+    # -------------------------------------
+    # C) Multiply 'value' by 3.6
+    # -------------------------------------
+    df_f_cons_filtered['value'] *= 3.6
+
+    # -------------------------------------
+    # D) Assign categories based on 'AAA'
+    # -------------------------------------
+    df_f_cons_filtered['Category'] = 'CHP Generation'  # default
+
+    mask_ind = df_f_cons_filtered['AAA'].str.contains('IND',  case=False, na=False)
+    mask_idv = df_f_cons_filtered['AAA'].str.contains('IDVU', case=False, na=False)
+
+    df_f_cons_filtered.loc[mask_ind, 'Category'] = 'Industry Heating'
+    df_f_cons_filtered.loc[mask_idv, 'Category'] = 'Individual Users Heating'
+
+    # -------------------------------------
+    # E) Return results (no aggregation)
+    # -------------------------------------
+    return df_flowc_filtered, df_f_cons_filtered
+
+df_flowc_filtered, df_f_cons_agg = process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA)
+
+
+def plot_five_column_histogram(df_flowc_filtered, df_f_cons_filtered):
+    """
+    Build a 5-column stacked histogram with the 3 fuels in the legend:
+      1) Industry Heating         (sums from df_f_cons_filtered, Category='Industry Heating')
+      2) Individual Users Heating (sums from df_f_cons_filtered, Category='Individual Users Heating')
+      3) CHP Generation           (sums from df_f_cons_filtered, Category='CHP Generation')
+      4) FlowC_4th: df_flowc_filtered with IPROCFROM in ['Wood_Pellets_Gen','Straw_for_Energy','Wood_for_Energy']
+      5) FlowC_5th: df_flowc_filtered with IPROCFROM='Wood_Pellets_Gen' & IPROCTO in ['Straw_for_Energy','Wood_for_Energy']
+                    PLUS df_f_cons_filtered with 'FFF'='WOODPELLETS'
+      The 5th column is negative in the final plot. 
+      
+      Legend only has 3 fuels: 'Wood Chips', 'Wood Pellets', 'Straw'.
+    """
+
+    #------------------------------------------------------------------------------
+    # 1) Re-group df_f_cons_filtered by [Category, FFF] to get separate fuels 
+    #    for each category. This is more granular than df_f_cons_agg.
+    #------------------------------------------------------------------------------
+    # We'll assume df_f_cons_filtered has columns: ['AAA','FFF','value','Category', ...]
+    # and FFF can be in ['WOODCHIPS','WOODPELLETS','STRAW'].
+    df_cat_fuel = df_f_cons_filtered.groupby(['Category','FFF'], as_index=False)['value'].sum()
+
+    # We'll map the FFF strings to "Wood Chips", "Wood Pellets", "Straw"
+    def map_fff_to_fuel(fff):
+        if fff == 'WOODCHIPS':
+            return 'Wood Chips'
+        elif fff == 'WOODPELLETS':
+            return 'Wood Pellets'
+        elif fff == 'STRAW':
+            return 'Straw'
+        else:
+            return None
+
+    df_cat_fuel['Fuel'] = df_cat_fuel['FFF'].apply(map_fff_to_fuel)
+
+    # A helper to map Category => which of the first 3 columns
+    def map_category_to_colidx(category):
+        if category == 'Industry Heating':
+            return 0
+        elif category == 'Individual Users Heating':
+            return 1
+        elif category == 'CHP Generation':
+            return 2
+        else:
+            return None  # we only have 3 categories we care about
+
+    #------------------------------------------------------------------------------
+    # 2) Prepare blank arrays for each of the 3 fuels, spanning 5 columns
+    #------------------------------------------------------------------------------
+    fuels = ['Wood Chips', 'Wood Pellets', 'Straw']
+    # We'll hold y-values in a dict: fuel_arrays['Wood Chips'] = [0,0,0,0,0], etc.
+    fuel_arrays = {}
+    for f in fuels:
+        fuel_arrays[f] = [0]*5  # 5 columns
+
+    #------------------------------------------------------------------------------
+    # 3) Fill columns 1,2,3 from df_cat_fuel 
+    #------------------------------------------------------------------------------
+    for _, row in df_cat_fuel.iterrows():
+        col_idx = map_category_to_colidx(row['Category'])
+        fuel = row['Fuel']
+        val = row['value']
+
+        if col_idx is not None and fuel in fuel_arrays:
+            fuel_arrays[fuel][col_idx] += val
+
+    #------------------------------------------------------------------------------
+    # 4) Build data for the 4th column: lines in df_flowc_filtered with 
+    #    IPROCFROM in ['Wood_Pellets_Gen','Straw_for_Energy','Wood_for_Energy']
+    #------------------------------------------------------------------------------
+    df_flowc_4th = df_flowc_filtered[
+        df_flowc_filtered['IPROCFROM'].isin(['Wood_Pellets_Gen','Straw_for_Energy','Wood_for_Energy'])
+    ].copy()
+
+    # We'll map IPROCFROM to a "Fuel" as well
+    def map_iproc_to_fuel(iproc):
+        if iproc == 'Wood_Pellets_Gen':
+            return 'Wood Pellets'
+        elif iproc == 'Straw_for_Energy':
+            return 'Straw'
+        elif iproc == 'Wood_for_Energy':
+            return 'Wood Chips'
+        else:
+            return None
+
+    df_flowc_4th['Fuel'] = df_flowc_4th['IPROCFROM'].apply(map_iproc_to_fuel)
+
+    # Summation by Fuel for the 4th column
+    df_flowc_4th_agg = df_flowc_4th.groupby('Fuel', as_index=False)['value'].sum()
+
+    for _, row in df_flowc_4th_agg.iterrows():
+        f = row['Fuel']
+        v = row['value']
+        if f in fuel_arrays:
+            fuel_arrays[f][3] += v   # 4th column index is 3
+
+    #------------------------------------------------------------------------------
+    # 5) Build data for the 5th column:
+    #    (a) from df_flowc_filtered with IPROCFROM='Wood_Pellets_Gen' 
+    #        AND IPROCTO in ['Straw_for_Energy','Wood_for_Energy']
+    #    (b) from df_f_cons_filtered with FFF='WOODPELLETS'
+    #    Combine them as "Wood Pellets" only, and make the total negative.
+    #------------------------------------------------------------------------------
+    df_flowc_5th = df_flowc_filtered[
+        (df_flowc_filtered['IPROCFROM']=='Wood_Pellets_Gen') &
+        (df_flowc_filtered['IPROCTO'].isin(['Straw_for_Energy','Wood_for_Energy']))
+    ].copy()
+
+    flowc_5th_val = df_flowc_5th['value'].sum()  # sum for that subset
+
+    # Also from df_f_cons_filtered with FFF='WOODPELLETS'
+    df_f_cons_wp = df_f_cons_filtered[df_f_cons_filtered['FFF']=='WOODPELLETS']
+    fcons_wp_val = df_f_cons_wp['value'].sum()
+
+    # Combine them, mark as negative in the final plot
+    wood_pellets_5th_val = -(flowc_5th_val + fcons_wp_val)  # negative for 5th column
+
+    # Store it in the array for 'Wood Pellets' column index=4
+    fuel_arrays['Wood Pellets'][4] = wood_pellets_5th_val
+    # The 5th column for Wood Chips & Straw remains 0
+
+    #------------------------------------------------------------------------------
+    # 6) Plot with Plotly as a stacked histogram with 5 columns on the x-axis
+    #------------------------------------------------------------------------------
+    x_labels = [
+        "Industry Heating",
+        "Individual Users Heating",
+        "CHP Generation",
+        "4th Column",
+        "5th Column"
+    ]
+
+    fig = go.Figure()
+
+    # Create one stacked trace per fuel
+    for f in fuels:
+        fig.add_trace(go.Bar(
+            x=x_labels,
+            y=fuel_arrays[f],
+            name=f
+        ))
+
+    fig.update_layout(
+        barmode='stack',
+        title="Five-Column Histogram (Stacked by Fuel)",
+        xaxis=dict(title="Categories / Columns"),
+        yaxis=dict(title="Value"),
+        legend=dict(title="Fuels")
+    )
+
+    fig.show()
+
+plot_five_column_histogram(df_flowc_filtered, df_f_cons_agg)
 
 #%%
 def plot_municipalities(df, shapefile_path, column_municipality, column_value, filter_column, filter_value, plot_title, cmap):
