@@ -868,3 +868,96 @@ result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
 
 print("Processing complete.")
 # %%
+#SECTION 10
+
+import geopandas as gpd
+import os
+
+# -----------------------------
+# 1. Define the filter_merge_save function
+# -----------------------------
+def filter_merge_save(
+    gdf,
+    attribute,
+    values_list,
+    filtered_path,
+    merged_path,
+    tolerance=0.01
+):
+    """
+    Filters the GeoDataFrame by a list of attribute values, saves the filtered 
+    results, merges the filtered results, and saves to a file.
+
+    Parameters:
+    gdf (GeoDataFrame): The input GeoDataFrame.
+    attribute (str): The attribute to filter by.
+    values_list (list): The list of attribute values to filter by.
+    filtered_path (str): The path to save the filtered GeoDataFrame.
+    merged_path (str): The path to save the merged GeoDataFrame.
+    tolerance (float): The tolerance for simplifying the merged geometry.
+    """
+    # Step 1: Filter the GeoDataFrame based on the attribute values
+    filtered_gdf = gdf[gdf[attribute].isin(values_list)]
+    
+    # Step 2: Save the filtered GeoDataFrame
+    filtered_gdf.to_file(filtered_path)
+    
+    # Step 3: Merge geometries in the filtered GeoDataFrame
+    merged_geometry = filtered_gdf.unary_union
+    
+    # Step 4: Simplify (regularize) the merged polygon with the specified tolerance
+    regularized_geometry = merged_geometry.simplify(tolerance, preserve_topology=True)
+    merged_gdf = gpd.GeoDataFrame(geometry=[regularized_geometry], crs=filtered_gdf.crs)
+    
+    # Step 5: Save the merged and regularized GeoDataFrame
+    merged_gdf.to_file(merged_path)
+    
+    # Return the merged GeoDataFrame
+    return merged_gdf
+
+# -----------------------------
+# 2. Read input data
+# -----------------------------
+wdpa_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\WDPA_WDOECM_Nov2024_Public_DNK_shp\merged_WDPA.shp"
+CLC_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\CLC_notprotected.shp"
+
+WDPA_gdf = gpd.read_file(wdpa_path)
+CLC_gdf = gpd.read_file(CLC_path)
+
+# -----------------------------
+# 3. Reproject to a common CRS
+# -----------------------------
+expected_crs = 3035
+WDPA_gdf = WDPA_gdf.to_crs(epsg=expected_crs)
+CLC_gdf = CLC_gdf.to_crs(epsg=expected_crs)
+
+# -----------------------------
+# 4. Filter and merge CLC based on Code_18 values
+# -----------------------------
+forest_values = ['311', '312', '313', '244']
+
+# Define output paths for filtered and merged CLC shapefiles
+filtered_forest_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\CLC_forest_filtered.shp"
+merged_forest_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\CLC_forest_merged.shp"
+
+# Use the function to create merged forest geometry
+forest_merged_gdf = filter_merge_save(
+    CLC_gdf,
+    attribute="Code_18",
+    values_list=forest_values,
+    filtered_path=filtered_forest_path,
+    merged_path=merged_forest_path,
+    tolerance=0.01
+)
+
+# -----------------------------
+# 5. Compute the intersection area
+# -----------------------------
+# Perform overlay (intersection) between merged forest geometry and WDPA
+intersection_gdf = gpd.overlay(forest_merged_gdf, WDPA_gdf, how='intersection')
+
+# Calculate total intersection area
+intersection_area = intersection_gdf.geometry.area.sum()
+
+print(f"Total intersection area in square meters (EPSG:3035): {intersection_area}")
+# %%
