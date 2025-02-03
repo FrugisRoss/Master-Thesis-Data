@@ -1,3 +1,4 @@
+
 #%%
 import pandas as pd
 import numpy as np
@@ -18,12 +19,11 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
-MainResults_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\MainResults.gdx'
-OptiflowMR_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\Optiflow_MainResults.gdx'
+MainResults_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_Prova\model\MainResults.gdx'
+OptiflowMR_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_Prova\model\Optiflow_MainResults.gdx'
 
 Resource_name = {'Biomass_for_use':'Biomass',
-               'Hydrogen_Use':'Hydrogen',
-               'CO2_Use':'CO2'}
+               'Hydrogen_Use':'Hydrogen'}
 
 Demands_name= {'Sea_fuels_sum':'Maritime demand',
                'Road_fuels_sum':'Road demand',
@@ -54,7 +54,11 @@ def Import_BalmorelMR(file_path):
     df = gt.Container(file_path)
     df_CC_YCRAG = pd.DataFrame(df["CC_YCRAG"].records)
     df_F_CONS_YCRA = pd.DataFrame(df["F_CONS_YCRA"].records)
-    return df_CC_YCRAG, df_F_CONS_YCRA
+    df_EMI_YCRAG = pd.DataFrame(df["EMI_YCRAG"].records)
+    return df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG
+
+df_FLOWA, df_FLOWC, df_EMI_YCRAG=Import_OptiflowMR(OptiflowMR_path)
+df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG=Import_BalmorelMR(MainResults_path)
 
 def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name, Resource_name, year, plot_title):
     df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
@@ -210,10 +214,9 @@ def Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name
     fig.show()
 
 Plot_fuel_supply(MainResults_path, OptiflowMR_path, Demands_name, Fuels_name,Resource_name, 2050, 'Base Case')
-# %%
+#%%
 
-
-def group_EMI_YCRAG(df_EMI_YCRAG, df_CC_YCRAG, df_FLOWC):
+def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC):
     """
     1) From df_EMI_YCRAG, select only rows where 'value' > 0.
        Classify them into: 
@@ -223,19 +226,9 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_CC_YCRAG, df_FLOWC):
        based on substring matching in column 'AAA':
          - if 'AAA' contains 'IND'  => 'Industry Heating'
          - if 'AAA' contains 'IDVU' => 'Individual Users Heating'
-         - else => 'CHP Generation'
+         - else => 'CHP Generation
 
-    2) From df_CC_YCRAG, take all rows, multiply 'value' by -1, 
-       then classify them into:
-         - 'Industry Heating CC'
-         - 'Individual Users Heating CC'
-         - 'CHP Generation CC'
-       based on substring matching in column 'IPROCFROM':
-         - if 'IPROCFROM' contains 'IND'  => 'Industry Heating CC'
-         - if 'IPROCFROM' contains 'IDVU' => 'Individual Users Heating CC'
-         - else => 'CHP Generation CC'
-
-    3) From df_FLOWC, take rows where 'IPROCFROM' is in 
+    2) From df_FLOWC, take rows where 'IPROCFROM' is in 
        ['CO2_Source_DAC','CO2_Land','CO2_Biochar_Sum','CO2_Biogas'].
        - Multiply their 'value' by -1000 (negative sign + convert from Mt to kton).
        - Map IPROCFROM to human-readable Category names: 
@@ -248,7 +241,7 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_CC_YCRAG, df_FLOWC):
     # ------------------------------------------------
     # A) Process df_EMI_YCRAG (only positive values)
     # ------------------------------------------------
-    df_emi = df_EMI_YCRAG[df_EMI_YCRAG['value'] > 0].copy()
+    df_emi = df_EMI_YCRAG.copy()
     df_emi['Category'] = None
 
     # Substring matching for 'IND' or 'IDVU' in column 'AAA'
@@ -256,32 +249,26 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_CC_YCRAG, df_FLOWC):
     mask_idvu_emi = df_emi['AAA'].str.contains('IDVU', case=False, na=False)
     mask_chp_emi  = ~(mask_ind_emi | mask_idvu_emi)  # everything else is CHP
 
-    df_emi.loc[mask_ind_emi,  'Category'] = 'Industry Heating'
-    df_emi.loc[mask_idvu_emi, 'Category'] = 'Individual Users Heating'
-    df_emi.loc[mask_chp_emi,  'Category'] = 'CHP Generation'
+    # Apply different masking based on the 'value' column
+    mask_positive = df_emi['value'] > 0
+    mask_negative = df_emi['value'] < 0
+
+    # For positive values
+    df_emi.loc[mask_positive & mask_ind_emi,  'Category'] = 'Industry Heating'
+    df_emi.loc[mask_positive & mask_idvu_emi, 'Category'] = 'Individual Users Heating'
+    df_emi.loc[mask_positive & mask_chp_emi,  'Category'] = 'CHP Generation'
+
+    # For negative values
+    df_emi.loc[mask_negative & mask_ind_emi,  'Category'] = 'Industry with BECCS'
+    df_emi.loc[mask_negative & mask_idvu_emi, 'Category'] = 'Individual with BECCS'
+    df_emi.loc[mask_negative & mask_chp_emi,  'Category'] = 'CHP with BECCS'
 
     # ------------------------------------------------
-    # B) Process df_CC_YCRAG (multiply by -1)
+    # B) Process df_FLOWC for CO2 items
     # ------------------------------------------------
-    df_cc = df_CC_YCRAG.copy()
-    df_cc['value'] = df_cc['value'] * -1  # negative CC values
-    df_cc['Category'] = None
-
-    # Substring matching for 'IND' or 'IDVU' in column 'IPROCFROM'
-    mask_ind_cc  = df_cc['AAA'].str.contains('IND',  case=False, na=False)
-    mask_idvu_cc = df_cc['AAA'].str.contains('IDVU', case=False, na=False)
-    mask_chp_cc  = ~(mask_ind_cc | mask_idvu_cc)  # everything else is CHP
-
-    df_cc.loc[mask_ind_cc,  'Category'] = 'Industry Heating CC'
-    df_cc.loc[mask_idvu_cc, 'Category'] = 'Individual Users Heating CC'
-    df_cc.loc[mask_chp_cc,  'Category'] = 'CHP Generation CC'
-
-    # ------------------------------------------------
-    # C) Process df_FLOWC for CO2 items
-    # ------------------------------------------------
-    co2_list = ['CO2_Source_DAC', 'CO2_Land', 'CO2_Biochar_Sum', 'CO2_Biogas']
+    co2_list = ['CO2_Land', 'CO2_Biochar_Sum', 'CO2_Biogas']
     co2_map = {
-        'CO2_Source_DAC': 'DAC',
+        'CO2_DAC_Total': 'DAC',
         'CO2_Land': 'Land Solutions',
         'CO2_Biochar_Sum': 'Biochar Sequestration',
         'CO2_Biogas': 'Biogas'
@@ -294,10 +281,22 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_CC_YCRAG, df_FLOWC):
     df_co2['value'] = df_co2['value'] * -1000
 
     # ------------------------------------------------
+    # Filter df_FLOWC for CO2_DAC_Total and CO2_Seq
+    # ------------------------------------------------
+    df_co2_dac = df_FLOWC[
+        (df_FLOWC['IPROCFROM'] == 'CO2_DAC_Total') &
+        (df_FLOWC['IPROCTO'].str.contains('CO2_Seq', case=False, na=False))
+    ].copy()
+    df_co2_dac['Category'] = df_co2_dac['IPROCFROM'].map(co2_map)
+
+    # Multiply the 'value' by -1000 => negative sign + convert from Mt to kton
+    df_co2_dac['value'] = df_co2_dac['value'] * -1000
+
+    # ------------------------------------------------
     # D) Combine and group
     # ------------------------------------------------
-    # Merge all dataframes (positive EMI, negative CC, negative CO2)
-    df_final = pd.concat([df_emi, df_cc, df_co2], ignore_index=True)
+    # Merge all dataframes (positive EMI, negative CC, negative CO2, and CO2 DAC)
+    df_final = pd.concat([df_emi, df_co2, df_co2_dac], ignore_index=True)
 
     # Group by Category and sum 'value'
     df_agg = df_final.groupby('Category', as_index=False)['value'].sum()
@@ -305,59 +304,47 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_CC_YCRAG, df_FLOWC):
     return df_agg
 
 
+df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
 
-def plot_3col_stacked_no_sum(df_agg, plot_title="Three-Column Emissions"):
+df_agg = group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC)
+print("Sum of all values in 'value' column:", df_agg['value'].sum())
+
+
+def plot_stacked_histogram(df_agg, plot_title="Stacked Emissions"):
     """
-    Creates 3 columns on the x-axis:
-      1) "Total"        -> use abs(value) for each row BUT only if that row's
-                           Category is in `allowed_in_total`; otherwise 0.
-      2) "Not Captured" -> use value if >0 else 0 (for all categories)
-      3) "Captured"     -> use value if <0 else 0 (for all categories)
-
-    Each row in df_agg is a separate stacked segment 
-    (so each 'Category' from df_agg appears in the legend).
-
-    Assumes df_agg has columns ['Category','value'].
-    No additional summing or grouping is performed.
-
-    In the first column, only the absolute values of:
-      - Industry Heating
-      - Industry Heating CC
-      - Individual Users Heating
-      - Individual Users Heating CC
-      - CHP Generation
-      - CHP Generation CC
-      - Biogas
-    will be stacked. Rows with other Categories get 0 in the first column.
+    Creates a single-column bar chart where:
+      - Positive 'value' segments stack upward from zero.
+      - Negative 'value' segments stack downward from zero.
+    
+    Assumes df_agg has columns ['Category', 'value'].
+    
+    If df_agg has duplicate categories that you wish to aggregate, you can uncomment the groupby.
     """
+    # --- Optional aggregation if needed ---
+    # df_agg = df_agg.groupby("Category", as_index=False)["value"].sum()
 
-    # Categories allowed in the first column (the "Total" bar)
-    allowed_in_total = {
-        "Industry Heating",
-        "Industry Heating CC",
-        "Individual Users Heating",
-        "Individual Users Heating CC",
-        "CHP Generation",
-        "CHP Generation CC",
-        "Biogas"
-    }
+    # Separate positive and negative values.
+    df_pos = df_agg[df_agg["value"] >= 0].copy()
+    df_neg = df_agg[df_agg["value"] < 0].copy()
 
-    # Copy the data so we don't modify the original
-    df_plot = df_agg.copy()
+    # Sort so that segments closest to zero are added first.
+    # For positives, smallest positive first so that the lowest segment starts at zero.
+    df_pos.sort_values("value", inplace=True)
+    # For negatives, sort in descending order (largest negative, i.e. closest to zero, first).
+    df_neg.sort_values("value", ascending=False, inplace=True)
 
-    # For each row, define columns:
-    #  abs_val => absolute value if the Category is in allowed_in_total, else 0
-    #  pos_val => value if > 0 else 0 (unchanged for all categories)
-    #  neg_val => value if < 0 else 0 (unchanged for all categories)
-    df_plot['abs_val'] = df_plot.apply(
-        lambda row: abs(row['value']) if row['Category'] in allowed_in_total else 0,
-        axis=1
-    )
-    df_plot['pos_val'] = df_plot['value'].clip(lower=0)  # anything <0 => 0
-    df_plot['neg_val'] = df_plot['value'].clip(upper=0)  # anything >0 => 0
+    # Calculate the base for positive segments:
+    # The first positive segment will have a base of 0, the second will start where the first ended, etc.
+    # For example, if positives are 10, 20, 30 then:
+    #   base for 10 = 0, base for 20 = 10, base for 30 = 10+20 = 30.
+    df_pos["base"] = df_pos["value"].cumsum() - df_pos["value"]
 
-    # A new palette with greens, greys, blues, purples, etc.
-    # (These are distinct from the default Plotly palette.)
+    # Similarly for negative segments:
+    # For negatives (e.g., -5, -15), we want:
+    #   base for -5 = 0, base for -15 = -5.
+    df_neg["base"] = df_neg["value"].cumsum() - df_neg["value"]
+
+    # Define a color map (with a fallback color) for consistency.
     color_map = {
         "Industry Heating":            "#065903",
         "Industry Heating CC":         "#84ad63",
@@ -370,83 +357,93 @@ def plot_3col_stacked_no_sum(df_agg, plot_title="Three-Column Emissions"):
         "Land Solutions":              "#D9D9D9",
         "Biochar Sequestration":       "#5c3f3d"
     }
-    # Any category not in the map will fall back to this color:
     fallback_color = "#999999"
 
-    # We'll create a figure with 3 x positions
-    x_labels = ["Total", "Not Caputured", "Captured"]
+    # Create a figure.
+    # (We use a single x-axis category so that all segments appear in one stacked column.)
+    x_val = "Total"
     fig = go.Figure()
 
-    # Each row in df_plot => one stacked trace
-    for _, row in df_plot.iterrows():
-        cat = row['Category']
-        abs_val = row['abs_val']  # only non-zero if in allowed_in_total
-        pos_val = row['pos_val']
-        neg_val = row['neg_val']
-        
+    # Add positive segments with the computed base.
+    for _, row in df_pos.iterrows():
+        cat  = row["Category"]
+        val  = row["value"]
+        base = row["base"]
         fig.add_trace(go.Bar(
-         x=x_labels,
-         y=[abs_val, pos_val, neg_val],
-         name=cat,
-        marker=dict(color=color_map.get(cat, fallback_color))
+            x=[x_val],
+            y=[val],
+            base=[base],
+            name=cat,
+            marker=dict(color=color_map.get(cat, fallback_color))
         ))
 
-    # Stacked layout & styling
+    # Add negative segments with the computed base.
+    for _, row in df_neg.iterrows():
+        cat  = row["Category"]
+        val  = row["value"]
+        base = row["base"]
+        fig.add_trace(go.Bar(
+            x=[x_val],
+            y=[val],
+            base=[base],
+            name=cat,
+            marker=dict(color=color_map.get(cat, fallback_color))
+        ))
+
+    # Set layout.
+    # We use 'overlay' mode so that our manually calculated base positions are honored.
     fig.update_layout(
         title=plot_title,
-        barmode='stack',  # stack categories at each of the 3 x positions
+        barmode="overlay",  # Do not let Plotly compute its own stacking positions.
         font=dict(
-            family='DejaVu Sans Bold, DejaVu Sans, sans-serif',
+            family="DejaVu Sans Bold, DejaVu Sans, sans-serif",
             size=14,
-            color='black'
+            color="black"
         ),
-        paper_bgcolor='white',
-        plot_bgcolor='white',
+        paper_bgcolor="white",
+        plot_bgcolor="white",
         legend=dict(
-            bgcolor='white',
-            bordercolor='black',
+            bgcolor="white",
+            bordercolor="black",
             borderwidth=1,
             font=dict(size=12)
         ),
         margin=dict(l=60, r=20, t=80, b=60)
     )
 
-    # X-axis: bounding box, no vertical grid
+    # X-axis styling: draw the axis line, no vertical grid lines.
     fig.update_xaxes(
         showline=True,
         mirror=True,
         linewidth=1,
-        linecolor='black',
+        linecolor="black",
         showgrid=False
     )
 
-    # Y-axis: bounding box, horizontal grid, zero line, labeled "[ktons]"
+    # Y-axis styling: add horizontal grid lines, a zero line, and a label.
     fig.update_yaxes(
-        title_text='[ktons]',
+        title_text="[ktons]",
         showline=True,
         mirror=True,
         linewidth=1,
-        linecolor='black',
+        linecolor="black",
         showgrid=True,
-        gridcolor='lightgray',
+        gridcolor="lightgray",
         gridwidth=0.6,
         zeroline=True,
         zerolinewidth=0.6,
-        zerolinecolor='lightgray'
+        zerolinecolor="lightgray"
     )
 
     fig.show()
 
-df_CC_YCRAG, df_F_CONS_YCRA = Import_BalmorelMR(MainResults_path)
-df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
-df_agg=group_EMI_YCRAG(df_EMI_YCRAG, df_CC_YCRAG, df_FLOWC)
-plot_3col_stacked_no_sum(df_agg, 'Emissions by Category')
+
+
+plot_stacked_histogram(df_agg, 'Emissions by Category')
+
+
 
 #%%
-
-df_CC_YCRAG, df_F_CONS_YCRA = Import_BalmorelMR(MainResults_path)
-df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
-
 def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
     """
     1) From df_FLOWC, select rows that satisfy ANY of:
@@ -457,7 +454,7 @@ def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
 
        => Return them as df_flowc_filtered.
 
-    2) From df_F_CONS_YCRA, select rows with FFF ∈ ['WOODCHIPS','STRAW','WOODPELLETS'].
+    2) From df_F_CONS_YCRA, select rows where 'C' == 'DENMARK' and FFF ∈ ['WOODCHIPS','STRAW','WOODPELLETS'].
        - Multiply the 'value' column by 3.6 for these filtered rows.
        - Add a column 'Category':
            - 'Industry Heating'         if AAA contains 'IND'
@@ -479,8 +476,8 @@ def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
     ])
     
     mask_iprocfrom_flow = (
-        df_FLOWC['IPROCFROM'].isin(['Straw_for_Energy','Wood_for_Energy'])
-        & df_FLOWC['FLOW'].isin(['STRAW_FLOW','WOOD_FLOW'])
+        df_FLOWC['IPROCFROM'].isin(['Straw_for_Energy', 'Wood_for_Energy'])
+        & df_FLOWC['FLOW'].isin(['STRAW_FLOW', 'WOOD_FLOW'])
     )
     
     mask_iprocfrom_pellets = (df_FLOWC['IPROCFROM'] == 'Wood_Pellets_Gen')
@@ -492,9 +489,11 @@ def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
 
     # -------------------------------------
     # B) Filter df_F_CONS_YCRA
+    #     * Now also require df_F_CONS_YCRA['C'] == 'DENMARK'
     # -------------------------------------
     df_f_cons_filtered = df_F_CONS_YCRA[
-        df_F_CONS_YCRA['FFF'].isin(['WOODCHIPS', 'STRAW', 'WOODPELLETS'])
+        (df_F_CONS_YCRA['C'] == 'DENMARK') &
+        (df_F_CONS_YCRA['FFF'].isin(['WOODCHIPS', 'STRAW', 'WOODPELLETS']))
     ].copy()
 
     # -------------------------------------
@@ -617,30 +616,68 @@ def plot_five_column_histogram(df_flowc_filtered, df_f_cons_filtered):
         if f in fuel_arrays:
             fuel_arrays[f][3] += v   # 4th column index is 3
 
-    #------------------------------------------------------------------------------
-    # 5) Build data for the 5th column:
-    #    (a) from df_flowc_filtered with IPROCFROM='Wood_Pellets_Gen' 
-    #        AND IPROCTO in ['Straw_for_Energy','Wood_for_Energy']
-    #    (b) from df_f_cons_filtered with FFF='WOODPELLETS'
-    #    Combine them as "Wood Pellets" only, and make the total negative.
-    #------------------------------------------------------------------------------
+    # Step 5) Build data for the 5th column
+    # -------------------------------------
+
+    # Apply the logical OR filter as per user instruction
     df_flowc_5th = df_flowc_filtered[
-        (df_flowc_filtered['IPROCFROM']=='Wood_Pellets_Gen') &
+        (df_flowc_filtered['IPROCFROM'] == 'Wood_Pellets_Gen') |
         (df_flowc_filtered['IPROCTO'].isin(['Straw_for_Energy','Wood_for_Energy']))
     ].copy()
 
-    flowc_5th_val = df_flowc_5th['value'].sum()  # sum for that subset
+    # Verify that df_flowc_5th contains data
+    print(f"Number of rows in df_flowc_5th: {len(df_flowc_5th)}")
+    print("Sample rows from df_flowc_5th:")
+    print(df_flowc_5th.head())
 
-    # Also from df_f_cons_filtered with FFF='WOODPELLETS'
-    df_f_cons_wp = df_f_cons_filtered[df_f_cons_filtered['FFF']=='WOODPELLETS']
+    # Apply the mapping function to 'IPROCFROM' and 'IPROCTO'
+    df_flowc_5th['Fuel_from'] = df_flowc_5th['IPROCFROM'].apply(map_iproc_to_fuel)
+    df_flowc_5th['Fuel_to'] = df_flowc_5th['IPROCTO'].apply(map_iproc_to_fuel)
+
+    # Sum the 'value' for each fuel from 'Fuel_from' and 'Fuel_to'
+    flowc_5th_from = df_flowc_5th.groupby('Fuel_from')['value'].sum().reset_index()
+    flowc_5th_to = df_flowc_5th.groupby('Fuel_to')['value'].sum().reset_index()
+
+    # Rename columns for clarity
+    flowc_5th_from.rename(columns={'Fuel_from': 'Fuel', 'value': 'FlowC_5th_from'}, inplace=True)
+    flowc_5th_to.rename(columns={'Fuel_to': 'Fuel', 'value': 'FlowC_5th_to'}, inplace=True)
+
+    # Merge the two dataframes to get total FlowC_5th per fuel
+    flowc_5th_combined = pd.merge(flowc_5th_from, flowc_5th_to, on='Fuel', how='outer').fillna(0)
+
+    # Calculate total FlowC_5th per fuel
+    flowc_5th_combined['FlowC_5th_total'] = flowc_5th_combined['FlowC_5th_from'] + flowc_5th_combined['FlowC_5th_to']
+
+    # Display the combined FlowC_5th data
+    print("FlowC_5th Aggregated Data:")
+    print(flowc_5th_combined)
+
+    # Process df_f_cons_wp
+    df_f_cons_wp = df_f_cons_filtered[df_f_cons_filtered['FFF'] == 'WOODPELLETS'].copy()
+
+    # Map 'FFF' to 'Fuel' using the same mapping function
+    df_f_cons_wp['Fuel'] = df_f_cons_wp['FFF'].apply(map_iproc_to_fuel)
+
+    # Sum the 'value' for 'Wood Pellets' consumption
     fcons_wp_val = df_f_cons_wp['value'].sum()
+    print(f"Wood Pellets Consumption Value: {fcons_wp_val}")
 
-    # Combine them, mark as negative in the final plot
-    wood_pellets_5th_val = -(flowc_5th_val + fcons_wp_val)  # negative for 5th column
+    # Assign negative values to the fifth column per fuel
+    for _, row in flowc_5th_combined.iterrows():
+        fuel = row['Fuel']
+        flowc_val = row['FlowC_5th_total']
+        if fuel in fuel_arrays:
+            fuel_arrays[fuel][4] -= flowc_val  # Assign as negative
 
-    # Store it in the array for 'Wood Pellets' column index=4
-    fuel_arrays['Wood Pellets'][4] = wood_pellets_5th_val
-    # The 5th column for Wood Chips & Straw remains 0
+    # Assign negative consumption for 'Wood Pellets'
+    if 'Wood Pellets' in fuel_arrays:
+        fuel_arrays['Wood Pellets'][4] -= fcons_wp_val
+
+    # Display the fuel_arrays for verification
+    print("Fuel Arrays after assigning 5th column:")
+    for fuel, values in fuel_arrays.items():
+        print(f"{fuel}: {values}")
+    print("\n")
 
     #------------------------------------------------------------------------------
     # 6) Plot with Plotly as a stacked histogram with 5 columns on the x-axis
@@ -649,30 +686,73 @@ def plot_five_column_histogram(df_flowc_filtered, df_f_cons_filtered):
         "Industry Heating",
         "Individual Users Heating",
         "CHP Generation",
-        "4th Column",
-        "5th Column"
+        "Fuels Production",
+        "Total Biomass Consumed"
     ]
+
+    # Define custom colors for each fuel
+    fuel_colors = {
+        'Wood Chips': '#1f77b4',      # Blue
+        'Wood Pellets': '#ff7f0e',    # Orange
+        'Straw': '#2ca02c'            # Green
+    }
 
     fig = go.Figure()
 
-    # Create one stacked trace per fuel
-    for f in fuels:
+    # Create one stacked trace per fuel with custom colors
+    for fuel in fuels:
         fig.add_trace(go.Bar(
             x=x_labels,
-            y=fuel_arrays[f],
-            name=f
+            y=fuel_arrays[fuel],
+            name=fuel,
+            marker_color=fuel_colors.get(fuel, 'gray')  # Default to gray if not specified
         ))
 
+    # Stacked layout & styling
     fig.update_layout(
-        barmode='stack',
-        title="Five-Column Histogram (Stacked by Fuel)",
-        xaxis=dict(title="Categories / Columns"),
-        yaxis=dict(title="Value"),
-        legend=dict(title="Fuels")
+        title="Biomass Consumption",
+        barmode='stack',  # stack categories at each of the 5 x positions
+        font=dict(
+            family='DejaVu Sans Bold, DejaVu Sans, sans-serif',
+            size=14,
+            color='black'
+        ),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        legend=dict(
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1,
+            font=dict(size=12)
+        ),
+        margin=dict(l=60, r=20, t=80, b=60)
+    )
+
+    # X-axis: bounding box, no vertical grid
+    fig.update_xaxes(
+        showline=True,
+        mirror=True,
+        linewidth=1,
+        linecolor='black',
+        showgrid=False
+    )
+
+    # Y-axis: bounding box, horizontal grid, zero line, labeled "[PJ]"
+    fig.update_yaxes(
+        title_text='[PJ]',
+        showline=True,
+        mirror=True,
+        linewidth=1,
+        linecolor='black',
+        showgrid=True,
+        gridcolor='lightgray',
+        gridwidth=0.6,
+        zeroline=True,
+        zerolinewidth=0.6,
+        zerolinecolor='lightgray'
     )
 
     fig.show()
-
 plot_five_column_histogram(df_flowc_filtered, df_f_cons_agg)
 
 #%%
@@ -815,18 +895,23 @@ def plot_municipalities(df, shapefile_path, column_municipality, column_value, f
 df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
 plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM',filter_value='Straw_for_Energy', plot_title='Straw for Energy in Denmark [PJ]', cmap='Reds')
 plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Wood_for_Energy', plot_title='Wood for Energy in Denmark  [PJ]', cmap='Greens')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Productive_Forest_Land_Gen', plot_title='Productive Forest in Denmark [Mha]', cmap='Blues')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Agricultural_Land_Gen', plot_title='Agricultural Land in Denmark [Mha]', cmap='Purples')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Land_for_Wood_Production', plot_title='Productive Forest in Denmark [Mha]', cmap='Blues')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Agriculture', plot_title='Agricultural Land in Denmark [Mha]', cmap='Purples')
 
 #%%
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Co2_Source_Biogen', plot_title='Point Source Biogen CO2 [Mtons]', cmap='Greens')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Co2_Source_Fossil', plot_title='Point Source Fossil CO2 [Mtons]', cmap='Greys')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Co2_Source_DAC', plot_title='Point Source DAC CO2 [Mtons]', cmap='Purples')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Co2_Seq_sum', plot_title='Sequestered CO2 [Mtons]', cmap='Blues')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='CO2_Source_Biogen', plot_title='Point Source Biogen CO2 [Mtons]', cmap='Greens')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='CO2_Source_Fossil', plot_title='Point Source Fossil CO2 [Mtons]', cmap='Greys')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='CO2_Source_DAC', plot_title='Point Source DAC CO2 [Mtons]', cmap='Purples')
+plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='CO2_Seq_sum', plot_title='Sequestered CO2 [Mtons]', cmap='Blues')
 # %%
 # Filter the DataFrame for the specified IPROCFROM values
 filtered_df = df_FLOWC[df_FLOWC['IPROCFROM'].isin(['Agricultural_Land_Gen', 'Land_for_Wood_Production', 'Wood_for_Energy', 'Straw_for_Energy','Wood_for_Use', 'Straw_for_Use'])]
 
 # Print the 'value' column for the filtered rows
 print(filtered_df[['IPROCFROM', 'value']])
+# %%
+# Clear all variables
+
+
+
 # %%
