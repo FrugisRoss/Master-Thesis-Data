@@ -19,8 +19,8 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
-MainResults_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_Prova\model\MainResults.gdx'
-OptiflowMR_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_Prova\model\Optiflow_MainResults.gdx'
+MainResults_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\CO2_Case\model\MainResults.gdx'
+OptiflowMR_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\CO2_Case\model\Optiflow_MainResults.gdx'
 
 Resource_name = {'Biomass_for_use':'Biomass',
                'Hydrogen_Use':'Hydrogen'}
@@ -403,6 +403,7 @@ def plot_stacked_histogram(df_agg, plot_title="Stacked Emissions"):
         paper_bgcolor="white",
         plot_bgcolor="white",
         legend=dict(
+            
             bgcolor="white",
             bordercolor="black",
             borderwidth=1,
