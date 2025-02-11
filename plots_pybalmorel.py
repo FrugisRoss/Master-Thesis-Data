@@ -16,16 +16,16 @@ from pybalmorel.utils import symbol_to_df
 import gams
 
 
-ws = gams.GamsWorkspace()
+# ws = gams.GamsWorkspace()
 
-res = MainResults(files='MainResults.gdx', paths=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\CO2_Case\model', scenario_names=['Base'])
+# res = MainResults(files='MainResults.gdx', paths=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_RLC_FOSSIL\model', scenario_names=['Base'])
 
-df = res.get_result('PRO_YCRAGF')
-print(df)
+# df = res.get_result('PRO_YCRAGF')
+# print(df)
 
 
 
-#%%
-fig, ax = res.plot_profile(scenario='Base', region='Denmark', year=2050, commodity='Electricity', columns='Technology',)
+# #%%
+# fig, ax = res.plot_profile(scenario='Base', region='Denmark', year=2050, commodity='Electricity')
                  
 # %%

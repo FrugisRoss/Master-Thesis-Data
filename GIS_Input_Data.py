@@ -772,6 +772,100 @@ result_df = ordered_df.merge(area_per_municipality, on='LAU_NAME', how='left')
 csv_output_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\CRS_area.csv'
 result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
 
+#%%
+# Define file paths
+municipality_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp'
+biodiversity_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_30_shp.shp'
+forest_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\CLC_forest_merged.shp'
+csv_output_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\Forest_area.csv'
+
+# Read only necessary columns to save memory
+print("Reading Municipality data...")
+Municipality_gdf = gpd.read_file(municipality_fp, usecols=['LAU_NAME', 'geometry'])
+
+print("Reading Biodiversity data...")
+Biodiversity_gdf = gpd.read_file(biodiversity_fp, usecols=['geometry'])
+
+print("Reading Forest Areas data...")
+Forest_areas_gdf = gpd.read_file(forest_fp, usecols=['geometry'])
+
+# Define target CRS
+target_crs = 'EPSG:3035'
+
+# Reproject all GeoDataFrames to target CRS if not already
+print("Reprojecting GeoDataFrames to target CRS...")
+Municipality_gdf = Municipality_gdf.to_crs(target_crs)
+Biodiversity_gdf = Biodiversity_gdf.to_crs(target_crs)
+Forest_areas_gdf = Forest_areas_gdf.to_crs(target_crs)
+
+# Simplify geometries to speed up processing (adjust tolerance as needed)
+tolerance = 100  # in CRS units (meters for EPSG:3035)
+print(f"Simplifying geometries with tolerance={tolerance} meters...")
+Municipality_gdf['geometry'] = Municipality_gdf['geometry'].simplify(tolerance, preserve_topology=True)
+Biodiversity_gdf['geometry'] = Biodiversity_gdf['geometry'].simplify(tolerance, preserve_topology=True)
+Forest_areas_gdf['geometry'] = Forest_areas_gdf['geometry'].simplify(tolerance, preserve_topology=True)
+
+# Perform spatial join between Biodiversity_gdf and Forest_areas_gdf for intersection
+print("Performing spatial join between Biodiversity and Forest Areas...")
+intersected_gdf = gpd.sjoin(Biodiversity_gdf, Forest_areas_gdf, how='inner', predicate='intersects')
+
+# Drop the index_right column added by sjoin
+intersected_gdf = intersected_gdf.drop(columns=['index_right'])
+
+# Clip the intersected_gdf with the Municipality_gdf
+print("Clipping intersected geometries with Municipality boundaries...")
+clipped_gdf = gpd.clip(intersected_gdf, Municipality_gdf)
+
+# Perform spatial join to add 'LAU_NAME' from Municipality_gdf to clipped_gdf
+print("Performing spatial join to attach 'LAU_NAME'...")
+clipped_gdf = gpd.sjoin(clipped_gdf, Municipality_gdf[['LAU_NAME', 'geometry']], how='left', predicate='within')
+
+# Drop unnecessary columns resulting from the spatial join
+clipped_gdf = clipped_gdf.drop(columns=['index_right'])
+
+# Compute the area for each geometry in hectares (assuming CRS units are meters)
+print("Calculating areas...")
+clipped_gdf['area'] = clipped_gdf.geometry.area / 10**4  # Converts m² to hectares
+
+# Group by 'LAU_NAME' and sum the areas
+print("Aggregating area per municipality...")
+area_per_municipality = clipped_gdf.groupby('LAU_NAME')['area'].sum().reset_index()
+
+# Define the desired order of municipalities
+desired_order = [
+    "Albertslund", "Allerød", "Assens", "Ballerup", "Billund", "Bornholm", "Brøndby", "Brønderslev",
+    "Christiansø", "Dragør", "Egedal", "Esbjerg", "Fanø", "Favrskov", "Faxe", "Fredensborg", "Fredericia",
+    "Frederiksberg", "Frederikshavn", "Frederikssund", "Furesø", "Faaborg-Midtfyn", "Gentofte", "Gladsaxe",
+    "Glostrup", "Greve", "Gribskov", "Guldborgsund", "Haderslev", "Halsnæs", "Hedensted", "Helsingør",
+    "Herlev", "Herning", "Hillerød", "Hjørring", "Holbæk", "Holstebro", "Horsens", "Hvidovre", "Høje-Taastrup",
+    "Hørsholm", "Ikast-Brande", "Ishøj", "Jammerbugt", "Kalundborg", "Kerteminde", "Kolding", "København",
+    "Køge", "Langeland", "Lejre", "Lemvig", "Lolland", "Lyngby-Taarbæk", "Læsø", "Mariagerfjord", "Middelfart",
+    "Morsø", "Norddjurs", "Nordfyns", "Nyborg", "Næstved", "Odder", "Odense", "Odsherred", "Randers", "Rebild",
+    "Ringkøbing-Skjern", "Ringsted", "Roskilde", "Rudersdal", "Rødovre", "Samsø", "Silkeborg", "Skanderborg",
+    "Skive", "Slagelse", "Solrød", "Sorø", "Stevns", "Struer", "Svendborg", "Syddjurs", "Sønderborg", "Thisted",
+    "Tønder", "Tårnby", "Vallensbæk", "Varde", "Vejen", "Vejle", "Vesthimmerlands", "Viborg", "Vordingborg",
+    "Ærø", "Aabenraa", "Aalborg", "Aarhus"
+]
+
+# Create a DataFrame with the desired order
+print("Creating ordered DataFrame...")
+ordered_df = pd.DataFrame({'LAU_NAME': desired_order})
+
+# Merge with the area data, filling missing values with 0
+print("Merging aggregated areas with ordered municipalities...")
+result_df = ordered_df.merge(area_per_municipality, on='LAU_NAME', how='left').fillna({'area': 0})
+
+# Ensure the order is maintained as per desired_order
+result_df['LAU_NAME'] = pd.Categorical(result_df['LAU_NAME'], categories=desired_order, ordered=True)
+result_df = result_df.sort_values('LAU_NAME')
+
+# Export to CSV
+print(f"Exporting results to CSV at {csv_output_path}...")
+result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
+
+print("Processing complete.")
+
+
  # %%
 
 # SECTION 9.1
@@ -869,9 +963,6 @@ result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
 print("Processing complete.")
 # %%
 #SECTION 10
-
-import geopandas as gpd
-import os
 
 # -----------------------------
 # 1. Define the filter_merge_save function
