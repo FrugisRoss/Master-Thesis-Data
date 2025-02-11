@@ -26,7 +26,7 @@ import plotly.graph_objects as go
 scenario_list = [
     ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model"),
     ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case\model"),
-    ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
+    ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case\model"),
 
     ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_FOSSIL\model"),
 #    ("Biodiversity+CO2 with Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_RLC_FOSSIL\model"),
@@ -722,149 +722,136 @@ multi_scenario_biomass_consumption(
 
 
 #%%
-def plot_municipalities(df, shapefile_path, column_municipality, column_value, filter_column, filter_value, plot_title, cmap):
-    # Municipality name mapping
-    municipality_name_mapping = {
-        "Albertslund": "Albertslund",
-        "Alleroed": "Allerød",
-        "Assens": "Assens",
-        "Ballerup": "Ballerup",
-        "Billund": "Billund",
-        "Bornholm": "Bornholm",
-        "Broendby": "Brøndby",
-        "Broenderslev": "Brønderslev",
-        "Christiansoe": "Christiansø",
-        "Dragoer": "Dragør",
-        "Egedal": "Egedal",
-        "Esbjerg": "Esbjerg",
-        "Fanoe": "Fanø",
-        "Favrskov": "Favrskov",
-        "Faxe": "Faxe",
-        "Fredensborg": "Fredensborg",
-        "Fredericia": "Fredericia",
-        "Frederiksberg": "Frederiksberg",
-        "Frederikshavn": "Frederikshavn",
-        "Frederikssund": "Frederikssund",
-        "Furesoe": "Furesø",
-        "Faaborg-Midtfyn": "Faaborg-Midtfyn",
-        "Gentofte": "Gentofte",
-        "Gladsaxe": "Gladsaxe",
-        "Glostrup": "Glostrup",
-        "Greve": "Greve",
-        "Gribskov": "Gribskov",
-        "Guldborgsund": "Guldborgsund",
-        "Haderslev": "Haderslev",
-        "Halsnaes": "Halsnæs",
-        "Hedensted": "Hedensted",
-        "Helsingoer": "Helsingør",
-        "Herlev": "Herlev",
-        "Herning": "Herning",
-        "Hilleroed": "Hillerød",
-        "Hjoerring": "Hjørring",
-        "Holbaek": "Holbæk",
-        "Holstebro": "Holstebro",
-        "Horsens": "Horsens",
-        "Hvidovre": "Hvidovre",
-        "Hoeje_Taastrup": "Høje-Taastrup",
-        "Hoersholm": "Hørsholm",
-        "Ikast-Brande": "Ikast-Brande",
-        "Ishoej": "Ishøj",
-        "Jammerbugt": "Jammerbugt",
-        "Kalundborg": "Kalundborg",
-        "Kerteminde": "Kerteminde",
-        "Kolding": "Kolding",
-        "Koebenhavn": "København",
-        "Koege": "Køge",
-        "Langeland": "Langeland",
-        "Lejre": "Lejre",
-        "Lemvig": "Lemvig",
-        "Lolland": "Lolland",
-        "Lyngby-Taarbaek": "Lyngby-Taarbæk",
-        "Laesoe": "Læsø",
-        "Mariagerfjord": "Mariagerfjord",
-        "Middelfart": "Middelfart",
-        "Morsoe": "Morsø",
-        "Norddjurs": "Norddjurs",
-        "Nordfyns": "Nordfyns",
-        "Nyborg": "Nyborg",
-        "Naestved": "Næstved",
-        "Odder": "Odder",
-        "Odense": "Odense",
-        "Odsherred": "Odsherred",
-        "Randers": "Randers",
-        "Rebild": "Rebild",
-        "Ringkoebing-Skjern": "Ringkøbing-Skjern",
-        "Ringsted": "Ringsted",
-        "Roskilde": "Roskilde",
-        "Rudersdal": "Rudersdal",
-        "Roedovre": "Rødovre",
-        "Samsoe": "Samsø",
-        "Silkeborg": "Silkeborg",
-        "Skanderborg": "Skanderborg",
-        "Skive": "Skive",
-        "Slagelse": "Slagelse",
-        "Solroed": "Solrød",
-        "Soroe": "Sorø",
-        "Stevns": "Stevns",
-        "Struer": "Struer",
-        "Svendborg": "Svendborg",
-        "Syddjurs": "Syddjurs",
-        "Soenderborg": "Sønderborg",
-        "Thisted": "Thisted",
-        "Toender": "Tønder",
-        "Taarnby": "Tårnby",
-        "Vallensbaek": "Vallensbæk",
-        "Varde": "Varde",
-        "Vejen": "Vejen",
-        "Vejle": "Vejle",
-        "Vesthimmerlands": "Vesthimmerlands",
-        "Viborg": "Viborg",
-        "Vordingborg": "Vordingborg",
-        "Aeroe": "Ærø",
-        "Aabenraa": "Aabenraa",
-        "Aalborg": "Aalborg",
-        "Aarhus": "Aarhus",
-    }
 
-        # Filter the DataFrame based on the specified value in the filter_column
-    filtered_df = df[df[filter_column] == filter_value]
-    
-    # Rename municipalities in the DataFrame according to the mapping
-    filtered_df[column_municipality] = filtered_df[column_municipality].map(municipality_name_mapping)
-    
-    # Load the shapefile
+
+# --- Function to Import Data from GDX ---
+def Import_OptiflowMR(file_path):
+    """ Function to import GDX file and extract dataframes """
+    if not file_path.endswith(".gdx"):
+        raise ValueError(f"Expected a .gdx file, but got {file_path}")
+
+    df = gt.Container(file_path)  # Load GDX file
+    df_FLOWA = pd.DataFrame(df["VFLOW_Opti_A"].records)
+    df_FLOWC = pd.DataFrame(df["VFLOW_Opti_C"].records)
+    df_EMI_YCRAG = pd.DataFrame(df["EMI_YCRAG"].records)
+    df_EMI_PROC = pd.DataFrame(df["EMI_PROC"].records)
+
+    return df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC
+
+# --- Function to Plot Maps ---
+def plot_municipalities(df, shapefile_path, column_municipality, column_value, filter_column_from, filter_column_to, filter_pairs, cmap, scenario_name, ax, norm):
+    """ Function to plot a map of Denmark's municipalities with summed values from multiple `IPROCFROM, IPROCTO` pairs """
+
+    # Load shapefile
     Municipality_gdf = gpd.read_file(shapefile_path)
-    
-    # Ensure the column names match
-    column_municipality_gdf = 'LAU_NAME'  # Replace with the actual column name in your shapefile
-    
-    # Merge the filtered DataFrame with the GeoDataFrame
-    merged = Municipality_gdf.merge(filtered_df, left_on=column_municipality_gdf, right_on=column_municipality, how='left')
-    
-    # Fill NaN values with 0
+    column_municipality_gdf = "LAU_NAME"  # Adjust based on actual column name
+
+    # Ensure Municipality Name Consistency
+    df[column_municipality] = df[column_municipality].str.strip()
+    Municipality_gdf[column_municipality_gdf] = Municipality_gdf[column_municipality_gdf].str.strip()
+
+    # Filter and Aggregate Data based on (IPROCFROM, IPROCTO) pairs
+    mask = df.apply(lambda row: any((row[filter_column_from] == pair[0] and row[filter_column_to] == pair[1]) for pair in filter_pairs), axis=1)
+    filtered_df = df[mask]
+
+    # Aggregate values per municipality
+    aggregated_df = filtered_df.groupby("AAA", observed=False)["value"].sum().reset_index()  # FIXED WARNING
+
+    # Merge with municipality shape data
+    merged = Municipality_gdf.merge(aggregated_df, left_on=column_municipality_gdf, right_on="AAA", how="left")
+
+    # Fill NaN with 0
     merged[column_value] = merged[column_value].fillna(0)
-    
-    # Plotting
-    fig, ax = plt.subplots(1, 1, figsize=(10, 10))
-    ax.set_facecolor('lightgrey')  # Set the background color to greyish
-    merged.plot(column=column_value, ax=ax, legend=True, cmap=cmap, edgecolor='black',
-                legend_kwds={'label': plot_title,
-                             'orientation': "horizontal"})
-    
-    # Remove axes
+
+    # Plot with Shared Color Scale
+    merged.plot(column=column_value, ax=ax, cmap=cmap, edgecolor="black", norm=norm)
+
+    ax.set_title(scenario_name, fontsize=12, fontweight='bold', family="DejaVu Sans, sans-serif")
     ax.set_axis_off()
-    
-    # Add title and show plot
-    plt.title(plot_title)
+
+    return merged[[column_municipality_gdf, column_value]]  # Return mapped data for debugging
+
+
+# --- List of Scenarios ---
+scenario_list = [
+    ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\Optiflow_MainResults.gdx"),
+    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case\model\Optiflow_MainResults.gdx"),
+    ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
+    ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_FOSSIL\model\Optiflow_MainResults.gdx"),
+]
+
+# --- List of Filters to Apply ---
+plot_filters = [
+    ([("Productive_Forest", "Land_for_Wood_Production"), ("Agricultural_Land", "New_Productive_Forest")], "Total Productive Forest [Mha]", "Oranges"),
+    ([("Agricultural_Land", "New_Productive_Forest")], "New Productive Forest [Mha]", "Greens"),
+    ([("Agricultural_Land", "Agriculture")], "Agricultural Land [Mha]", "Reds"),
+]
+
+shapefile_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
+
+# --- Loop Over Each Filter ---
+for filter_pairs, plot_title, cmap in plot_filters:
+    fig, axes = plt.subplots(1, len(scenario_list), figsize=(20, 5))
+
+    # Create a DataFrame to collect all scenarios
+    df_all_scenarios = pd.DataFrame()
+
+    # --- Step 1: Find Global Min & Max for Color Scale ---
+    global_min, global_max = np.inf, -np.inf
+
+    for scenario_name, file_path in scenario_list:
+        df_FLOWA, _, _, _ = Import_OptiflowMR(file_path)
+
+        # Filter based on (IPROCFROM, IPROCTO) pairs
+        mask = df_FLOWA.apply(lambda row: any((row["IPROCFROM"] == pair[0] and row["IPROCTO"] == pair[1]) for pair in filter_pairs), axis=1)
+        filtered_df = df_FLOWA[mask]
+
+        # Aggregate by municipality
+        aggregated_df = filtered_df.groupby("AAA", observed=False)["value"].sum().reset_index()  # FIXED WARNING
+
+        if aggregated_df.empty:
+            aggregated_df["value"] = 0  # Ensure 0 if no data exists
+        else:
+            min_val, max_val = aggregated_df["value"].min(), aggregated_df["value"].max()
+            global_min, global_max = min(global_min, min_val), max(global_max, max_val)
+
+        # Store scenario data
+        aggregated_df.rename(columns={"value": scenario_name}, inplace=True)
+        if df_all_scenarios.empty:
+            df_all_scenarios = aggregated_df
+        else:
+            df_all_scenarios = pd.merge(df_all_scenarios, aggregated_df, on="AAA", how="outer")
+
+    # Fill missing values with 0
+    df_all_scenarios.fillna(0, inplace=True)
+
+    # Display DataFrame (replaces ace_tools)
+    print(f"\n📊 Data Table for {plot_title}")
+    print(df_all_scenarios.head())  # Print first few rows for debugging
+
+    # --- Step 2: Define Shared Color Scale ---
+    norm = mcolors.Normalize(vmin=global_min, vmax=global_max)
+
+    # --- Step 3: Generate Plots ---
+    for idx, (scenario_name, file_path) in enumerate(scenario_list):
+        print(f"\n🔹 Processing {scenario_name} for {filter_pairs}")
+
+        df_FLOWA, _, _, _ = Import_OptiflowMR(file_path)
+        plot_municipalities(df_FLOWA, shapefile_path, "AAA", "value", "IPROCFROM", "IPROCTO", filter_pairs, cmap, scenario_name, axes[idx], norm)
+
+    # Global title for the figure
+    plt.suptitle(plot_title, fontsize=16, fontweight='bold', family="DejaVu Sans, sans-serif")
+
+    plt.tight_layout(rect=[0.1, 0, 1, 0.95])
+
+    # Add Colorbar
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+    cbar_ax = fig.add_axes([0.05, 0.15, 0.02, 0.7])
+    fig.colorbar(sm, cax=cbar_ax, orientation="vertical").set_label("Value", fontsize=14, fontweight='bold', family="DejaVu Sans, sans-serif")
+
     plt.show()
-
-df_FLOWA, df_FLOWC, df_EMI_YCRAG = Import_OptiflowMR(OptiflowMR_path)
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM',filter_value='Straw_for_Energy', plot_title='Straw for Energy in Denmark [PJ]', cmap='Reds')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Wood_for_Energy', plot_title='Wood for Energy in Denmark  [PJ]', cmap='Greens')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Land_for_Wood_Production', plot_title='Productive Forest in Denmark [Mha]', cmap='Blues')
-plot_municipalities( df_FLOWA, shapefile_path=r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp', column_municipality='AAA', column_value='value', filter_column='IPROCFROM', filter_value='Agriculture', plot_title='Agricultural Land in Denmark [Mha]', cmap='Purples')
-
-
+    
 # %%
 # Filter the DataFrame for the specified IPROCFROM values
 filtered_df = df_FLOWC[df_FLOWC['IPROCFROM'].isin(['Agricultural_Land_Gen', 'Land_for_Wood_Production', 'Wood_for_Energy', 'Straw_for_Energy','Wood_for_Use', 'Straw_for_Use'])]
