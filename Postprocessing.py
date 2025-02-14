@@ -19,36 +19,37 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
+
 # ------------------------------------------------------------------------------
 # A) DEFINE YOUR SCENARIOS
 #    Each scenario is a tuple: (scenario_name, scenario_path)
 # ------------------------------------------------------------------------------
 scenario_list = [
      ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model"),
-#  #   ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case\model"),
-#     ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
-#  #   ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case\model"),
-#    ("Biodiversity+CO2 Scenario ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
+ #    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case\model"),
+     ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
+ #   ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case\model"),
+   ("Biodiversity+CO2 Scenario ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_Modified\model"),
 
    
-    #   ("Biodiversity+CO2 with Fossils Scenario ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model"),
+       ("Biodiversity+CO2 with Fossils Scenario ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model"),
     # ("Biodiversity+CO2 with Fossils Scenario -50% PF ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL-50PF\model"),
     # ("Biodiversity+CO2 with Fossils Scenario -90% PF ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL-90PF\model"),
 
 #     ("Biodiversity+CO2 with Fossils Scenario +50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL+50\model"),
-#    ("Biodiversity+CO2 with Fossils Scenario RLC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_RLC_FOSSIL\model"),
+ #   ("Biodiversity+CO2 with Fossils Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_FOSSIL\model"),
 
 ]
 
 Resource_name = {
-    'Biomass_for_use':'Biomass',
-    'Hydrogen_Use':'Hydrogen'
+    'Biomass_for_use': 'Biomass',
+    'Hydrogen_Use': 'Hydrogen'
 }
 
 Demands_name = {
-    'Sea_fuels_sum':'Maritime demand',
-    'Road_fuels_sum':'Road demand',
-    'Air_fuels_sum':'Air demand'
+    'Sea_fuels_sum': 'Maritime demand',
+    'Road_fuels_sum': 'Road demand',
+    'Air_fuels_sum': 'Air demand'
 }
 
 Fuels_name = {
@@ -174,7 +175,7 @@ def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
     # Assign categories
     df_f_cons_filtered['Category'] = 'CHP Generation'
     mask_ind = df_f_cons_filtered['AAA'].str.contains('IND', case=False, na=False)
-    mask_idv = df_f_cons_filtered['AAA'].str.contains('IDVU',case=False, na=False)
+    mask_idv = df_f_cons_filtered['AAA'].str.contains('IDVU', case=False, na=False)
     df_f_cons_filtered.loc[mask_ind,'Category'] = 'Industry Heating'
     df_f_cons_filtered.loc[mask_idv,'Category'] = 'Individual Users Heating'
 
@@ -189,7 +190,7 @@ def multi_scenario_fuel_supply(
     Fuels_name,
     Resource_name,
     year,
-    plot_title="Fuel Supply Comparison"
+    plot_title="Fuel Demand Supply"
 ):
     fig = make_subplots(
         rows=1,
@@ -229,7 +230,6 @@ def multi_scenario_fuel_supply(
         df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
         df_CC, df_F_CONS, df_EMI_b = Import_BalmorelMR(main_results_path)
 
-    
         # Filter by year
         df_FLOWC = df_FLOWC[df_FLOWC['Y'] == str(year)]
 
@@ -362,26 +362,19 @@ def multi_scenario_fuel_supply(
     )
 
     fig.show()
-    plt.savefig('Fuel_Supply.svg')
+    #fig.write_image('Fuel_Supply.svg')
 
 def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by Scenario"):
     """
     Creates a single figure with subplots in columns (1 x #scenarios).
     Each subplot is stacked emissions for that scenario.
-
-    - The scenario name is shown in the subplot title (top).
-    - We use a numeric x-axis at x=0 (type="linear").
-    - We hide all tick labels with showticklabels=False.
-    - That way, no scenario labels appear at the bottom.
     """
-
     # Create subplots: 1 row, N columns
     fig = make_subplots(
         rows=1,
         cols=len(scenarios),
-        # put scenario names in subplot titles (top)
         subplot_titles=[s[0] for s in scenarios],
-        shared_yaxes=True  # share scale across subplots
+        shared_yaxes=True
     )
 
     # Example color map
@@ -402,35 +395,26 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
     }
     fallback_color = "#999999"
 
-    # Track categories encountered so we show each in the legend only once
     encountered_categories = set()
 
     for idx, (scenario_name, scenario_path) in enumerate(scenarios):
-
-        # Load data
         main_results_path = os.path.join(scenario_path, "MainResults.gdx")
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
         df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
         df_CC, df_F_CONS, df_EMI_bal   = Import_BalmorelMR(main_results_path)
 
-        # Process for stacked emissions
         df_agg = group_EMI_YCRAG(df_EMI_opt, df_FLOWC, df_EMI_PROC)
 
-        # Split positive & negative
         df_pos = df_agg[df_agg["value"] >= 0].copy()
         df_neg = df_agg[df_agg["value"] < 0].copy()
 
-        # Sort for stacking
         df_pos.sort_values("value", inplace=True)
         df_neg.sort_values("value", ascending=False, inplace=True)
 
-        # Manual stack base
         df_pos["base"] = df_pos["value"].cumsum() - df_pos["value"]
         df_neg["base"] = df_neg["value"].cumsum() - df_neg["value"]
 
-        # Instead of using scenario_name for x, we use numeric 0
-        # so there's no category text to show
         x_val = 0
         c_col = idx + 1
 
@@ -446,7 +430,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
 
             fig.add_trace(
                 go.Bar(
-                    x=[x_val],  # numeric array
+                    x=[x_val],
                     y=[val],
                     base=[base],
                     name=cat,
@@ -478,21 +462,19 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
                 row=1, col=c_col
             )
 
-        # Style the x-axis to remove ticks/labels
         fig.update_xaxes(
-            type="linear",           # numeric axis
-            range=[-1, 1],          # small range around 0 (just so bars are visible)
-            showticklabels=False,    # remove tick labels
+            type="linear",
+            range=[-1, 1],
+            showticklabels=False,
             showline=True,
             mirror=True,
             linewidth=1,
             linecolor="black",
             showgrid=False,
-            title_text='',           # no axis title
+            title_text='',
             row=1, col=c_col
         )
 
-        # Only put Y-axis label on first subplot
         y_title = '[ktons]' if idx == 0 else ''
         fig.update_yaxes(
             title_text=y_title,
@@ -509,10 +491,9 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
             row=1, col=c_col
         )
 
-    # Final layout
     fig.update_layout(
         title=plot_title,
-        barmode="overlay",  # manual stacking
+        barmode="overlay",
         font=dict(
             family="DejaVu Sans, sans-serif",
             size=14,
@@ -530,7 +511,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
     )
 
     fig.show()
-    plt.savefig('CO2_Emissions.svg')
+   # fig.write_image('CO2_Emissions.svg')
 
 def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumption Comparison"):
     fig = make_subplots(
@@ -540,7 +521,6 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         subplot_titles=[s[0] for s in scenarios],
     )
 
-    # Fuel color map
     fuel_colors = {
         'Wood Chips':   '#1f77b4',
         'Wood Pellets': '#ff7f0e',
@@ -548,7 +528,6 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
     }
     fallback_color = 'gray'
 
-    # Keep track of which fuel names have been used in the legend
     encountered_legends = set()
 
     for idx, (scenario_name, scenario_path) in enumerate(scenarios):
@@ -558,10 +537,8 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
         df_CC, df_F_CONS, df_EMI_bal   = Import_BalmorelMR(main_results_path)
 
-        # 1) Process flows & consumption
         df_flowc_filtered, df_f_cons_filtered = process_flows_and_consumption(df_FLOWC, df_F_CONS)
 
-        # 2) Summation by (Category, FFF)
         df_cat_fuel = df_f_cons_filtered.groupby(['Category','FFF'], as_index=False)['value'].sum()
 
         def map_fff_to_fuel(fff):
@@ -576,12 +553,11 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
             if cat == 'Industry Heating':        return 0
             if cat == 'Individual Users Heating':return 1
             if cat == 'CHP Generation':          return 2
-            return None  # fallback
+            return None
 
         fuels = ['Wood Chips','Wood Pellets','Straw']
-        fuel_arrays = {f: [0]*5 for f in fuels}  # 5 columns
+        fuel_arrays = {f: [0]*5 for f in fuels}
 
-        # Columns 0..2 => from df_cat_fuel
         for _, row2 in df_cat_fuel.iterrows():
             cidx = map_category_to_colidx(row2['Category'])
             f    = row2['Fuel']
@@ -589,7 +565,6 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
             if cidx is not None and f in fuel_arrays:
                 fuel_arrays[f][cidx] += v
 
-        # 4th column => df_flowc_4th
         df_flowc_4th = df_flowc_filtered[
             df_flowc_filtered['IPROCFROM'].isin(['Wood_Pellets_Gen','Straw_for_Energy','Wood_for_Energy'])
         ].copy()
@@ -609,7 +584,6 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
             if f in fuel_arrays:
                 fuel_arrays[f][3] += v
 
-        # 5th column => negative
         df_flowc_5th = df_flowc_filtered[
             (df_flowc_filtered['IPROCFROM'] == 'Wood_Pellets_Gen') |
             (df_flowc_filtered['IPROCTO'].isin(['Straw_for_Energy','Wood_for_Energy']))
@@ -624,7 +598,6 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         flowc_5th_combined = pd.merge(flowc_5th_from, flowc_5th_to, on='Fuel', how='outer').fillna(0)
         flowc_5th_combined['FlowC_5th_total'] = flowc_5th_combined['FlowC_5th_from'] + flowc_5th_combined['FlowC_5th_to']
 
-        # Subtract from 5th col
         df_f_cons_wp = df_f_cons_filtered[df_f_cons_filtered['FFF'] == 'WOODPELLETS'].copy()
         df_f_cons_wp['Fuel'] = df_f_cons_wp['FFF'].apply(map_fff_to_fuel)
         fcons_wp_val = df_f_cons_wp['value'].sum()
@@ -638,7 +611,6 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         if 'Wood Pellets' in fuel_arrays:
             fuel_arrays['Wood Pellets'][4] -= fcons_wp_val
 
-        # X-axis labels
         x_labels = [
             "Industry Heating",
             "Individual Users",
@@ -648,7 +620,6 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         ]
 
         c_col = idx+1
-        # Now we add stacked bars for each fuel in fuel_arrays
         for f in fuels:
             show_legend = (f not in encountered_legends)
             if show_legend:
@@ -665,7 +636,6 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
                 row=1, col=c_col
             )
 
-        # Style
         fig.update_xaxes(
             title_text='',
             showline=True,
@@ -708,16 +678,19 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
     )
 
     fig.show()
-    plt.savefig('Biomass_Use.svg')
+   # fig.write_image('Biomass_Use.svg')
 
 
+# ------------------------------------------------------------------------------
+# Execute plotting functions and save the plots as SVG
+# ------------------------------------------------------------------------------
 multi_scenario_fuel_supply(
     scenario_list,
     Demands_name,
     Fuels_name,
     Resource_name,
     year=2050,
-    plot_title="Fuel Supply across Scenarios"
+    plot_title="Fuels Demand Supply across Scenarios"
 )
 
 multi_scenario_stacked_emissions(
@@ -882,9 +855,9 @@ def plot_municipalities(df, shapefile_path, column_municipality, column_value,
     merged = Municipality_gdf.merge(aggregated_df, left_on=column_municipality_gdf, right_on="AAA", how="left")
     merged[column_value] = merged[column_value].fillna(0)
 
-    # Plot with the shared color scale.
-    merged.plot(column=column_value, ax=ax, cmap=cmap, edgecolor="black", norm=norm)
-    ax.set_title(scenario_name, fontsize=12, fontweight='bold', family="Arial")
+    # Plot with a thin grey border.
+    merged.plot(column=column_value, ax=ax, cmap=cmap, edgecolor="grey", linewidth=0.5, norm=norm)
+    ax.set_title(scenario_name, fontsize=12,  family="Arial")
     ax.set_axis_off()
 
     return merged[[column_municipality_gdf, column_value]]  # Return merged data for debugging.
@@ -892,28 +865,50 @@ def plot_municipalities(df, shapefile_path, column_municipality, column_value,
 # === List of Scenarios ===
 scenario_list = [
     ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\Optiflow_MainResults.gdx"),
-    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case\model\Optiflow_MainResults.gdx"),
-    ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
-    ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_FOSSIL\model\Optiflow_MainResults.gdx"),
+    # ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
+    # ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
+    # ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model\Optiflow_MainResults.gdx"),
 ]
 
 # === List of Filters to Apply ===
 # For the "New Productive Forest [Mha]" plot we wish to capture rows with IPROCFROM "Agricultural_Land"
 # and IPROCTO values that start with "New_Productive_Forest"
 plot_filters = [
-    #([("Productive_Forest", "Land_for_Wood_Production"), ("Agricultural_Land", "New_Productive_Forest")],
-    # "Total Productive Forest [Mha]", "Oranges"),
-    ([("Agricultural_Land", "New_Productive_Forest")],
-     "New Productive Forest [Mha]", "Greens"),
-    #([("Agricultural_Land", "Agriculture")],
-    # "Agricultural Land [Mha]", "Reds"),
-]
+    # ([("Agricultural_Land", "C_Rich_Soils_Extraction_HOV"),
+    # ("Agricultural_Land", "C_Rich_Soils_Extraction_SJA"),
+    # ("Agricultural_Land", "C_Rich_Soils_Extraction_SYD"),
+    # ("Agricultural_Land", "C_Rich_Soils_Extraction_MID"),
+    # ("Agricultural_Land", "C_Rich_Soils_Extraction_NOR")],
+    # "Carbon Rich Soil Extraction [Mha]", "Oranges"),
+
+    # ([("Agricultural_Land", "New_Productive_Forest_HOV"),
+    # ("Agricultural_Land", "New_Productive_Forest_SJA"),
+    # ("Agricultural_Land", "New_Productive_Forest_SYD"),
+    # ("Agricultural_Land", "New_Productive_Forest_MID"),
+    # ("Agricultural_Land", "New_Productive_Forest_NOR")],
+    #  "New Productive Forest [Mha]", "Greens"),
+
+    # ([("Productive_Forest", "Untouched_Forest_HOV"),
+    # ("Productive_Forest", "Untouched_Forest_SJA"),
+    # ("Productive_Forest", "Untouched_Forest_SYD"),
+    # ("Productive_Forest", "Untouched_Forest_MID"),
+    # ("Productive_Forest", "Untouched_Forest_NOR")],
+    # "New Protected Forest [Mha]", "Reds"),
+
+#     ([("Agricultural_Land", "Agriculture")],"Agricultural Land [Mha]", "Greens"),
+#     ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest [Mha]", "Oranges"),
+      ([("CO2_Source_DAC", "CO2_DAC_50")],"CO2 Captured from DAC [Mton]", "Purples"),
+      ([("CO2_Source_Biogen", "CO2_BIOGEN_TOT")],"Point Source CO2 from Bioenergy [Mton]", "YlGnBu"),
+      ([("CO2_Source_Fossil", "CO2_FOS_TOT")],"Point Source CO2 from Fossils [Mton]", "Greys"),
+ ]
 
 shapefile_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
 
 # === Main Loop Over Each Filter ===
 for filter_pairs, plot_title, cmap in plot_filters:
     fig, axes = plt.subplots(1, len(scenario_list), figsize=(20, 5))
+    if not isinstance(axes, (list, np.ndarray)):
+        axes = [axes]
     df_all_scenarios = pd.DataFrame()
 
     # --- Step 1: Determine Global Color Scale (Min & Max) ---
@@ -957,6 +952,7 @@ for filter_pairs, plot_title, cmap in plot_filters:
     for idx, (scenario_name, file_path) in enumerate(scenario_list):
         print(f"\n🔹 Processing {scenario_name} for {filter_pairs}")
         df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC = Import_OptiflowMR(file_path)
+        
         df_FLOWA["AAA"] = df_FLOWA["AAA"].astype(str).str.strip().replace(municipality_name_mapping)
         df_FLOWA["IPROCFROM"] = df_FLOWA["IPROCFROM"].astype(str).str.strip()
         df_FLOWA["IPROCTO"] = df_FLOWA["IPROCTO"].astype(str).str.strip()
@@ -975,18 +971,21 @@ for filter_pairs, plot_title, cmap in plot_filters:
             norm=norm
         )
 
-    plt.suptitle(plot_title, fontsize=16, fontweight='bold', family="Arial")
+    plt.suptitle(plot_title, fontsize=16, family="Arial")
     plt.tight_layout(rect=[0.1, 0, 1, 0.95])
 
     # Add Colorbar
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
-    cbar_ax = fig.add_axes([0.05, 0.15, 0.02, 0.7])
-    fig.colorbar(sm, cax=cbar_ax, orientation="vertical").set_label("Value", fontsize=14, fontweight='bold', family="Arial")
+    cbar_ax = fig.add_axes([0.94, 0.15, 0.02, 0.7])
+    fig.colorbar(sm, cax=cbar_ax, orientation="vertical").set_label("Value", fontsize=14, family="Arial")
 
     plt.show()
+    plt.savefig('Multiple_Scen_Map.svg')
 
 # %%
+df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC=Import_OptiflowMR(r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\Optiflow_MainResults.gdx")
+
 # Filter the DataFrame for the specified IPROCFROM values
 filtered_df = df_FLOWC[df_FLOWC['IPROCFROM'].isin(['Agricultural_Land_Gen', 'Land_for_Wood_Production', 'Wood_for_Energy', 'Straw_for_Energy','Wood_for_Use', 'Straw_for_Use'])]
 

@@ -776,8 +776,8 @@ result_df.to_csv(csv_output_path, index=False, encoding='utf-8-sig')
 # Define file paths
 municipality_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp'
 biodiversity_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_30_shp.shp'
-forest_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\CLC_forest_merged.shp'
-csv_output_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\Forest_area.csv'
+agri_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
+csv_output_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\Agriculture_area.csv'
 
 # Read only necessary columns to save memory
 print("Reading Municipality data...")
@@ -787,7 +787,7 @@ print("Reading Biodiversity data...")
 Biodiversity_gdf = gpd.read_file(biodiversity_fp, usecols=['geometry'])
 
 print("Reading Forest Areas data...")
-Forest_areas_gdf = gpd.read_file(forest_fp, usecols=['geometry'])
+Forest_areas_gdf = gpd.read_file(agri_fp, usecols=['geometry'])
 
 # Define target CRS
 target_crs = 'EPSG:3035'
@@ -873,8 +873,8 @@ print("Processing complete.")
 # Define file paths
 municipality_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp'
 crs_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Tekstur2014\Tekstur2014.shp'
-agri_fp = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\CLC data extracted\Agricultural_Areas_Merged.shp'
-csv_output_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\CRS_area.csv'
+biodiversity = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\Biodiversity Council\scenarie_30_shp.shp'
+csv_output_path = r'C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\CRS_biodiversity_area.csv'
 
 # Read only necessary columns to save memory
 print("Reading Municipality data...")
@@ -884,7 +884,7 @@ print("Reading CRS data...")
 CRS_gdf = gpd.read_file(crs_fp, usecols=['geometry'])  # Add other necessary columns if needed
 
 print("Reading Agricultural Areas data...")
-Agricultural_areas_gdf = gpd.read_file(agri_fp, usecols=['geometry'])  # Add other necessary columns if needed
+Agricultural_areas_gdf = gpd.read_file(biodiversity, usecols=['geometry'])  # Add other necessary columns if needed
 
 # Define target CRS
 target_crs = 'EPSG:3035'
