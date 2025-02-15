@@ -27,9 +27,9 @@ import plotly.graph_objects as go
 scenario_list = [
 #      ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model"),
 #  #    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case\model"),
-       ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
-       ("CO2 Scenario -50% PF", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC-50PF\model"),
-      ("CO2 Scenario -90% PF", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC-90PF\model"),
+    #    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
+    #    ("CO2 Scenario -50% PF", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC-50PF\model"),
+    #   ("CO2 Scenario -90% PF", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC-90PF\model"),
 
 #  #   ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case\model"),
 #    ("Biodiversity+CO2 Scenario ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
@@ -43,6 +43,11 @@ scenario_list = [
 #      ("Biodiversity+CO2 with Fossils Scenario -50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL-50NG\model"),
 # #     ("Biodiversity+CO2 with Fossils Scenario +50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL+50\model"),
 #  #   ("Biodiversity+CO2 with Fossils Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_FOSSIL\model"),
+    ("Biodiversity+CO2 Fossil -50% TC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC-50tc\model"),
+
+    ("Biodiversity+CO2 Fossil", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
+    ("Biodiversity+CO2 Fossil +50% TC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC+50tc\model"),
+
 
 ]
 
@@ -873,9 +878,10 @@ scenario_list = [
 #     ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
 #     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
 #     ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model\Optiflow_MainResults.gdx"),
-    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
-    ("CO2 Scenario -50% PF", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC-50PF\model\Optiflow_MainResults.gdx"),
-    ("CO2 Scenario -90% PF", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC-90PF\model\Optiflow_MainResults.gdx"),
+    ("Biodiversity+CO2 Fossil -50% Transport Costs", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC-50tc\model\Optiflow_MainResults.gdx"),
+
+    ("Biodiversity+CO2 Fossil", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
+    ("Biodiversity+CO2 Fossil +50% Transport Costs", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC+50tc\model\Optiflow_MainResults.gdx"),
 
 ]
 
@@ -883,12 +889,12 @@ scenario_list = [
 # For the "New Productive Forest [Mha]" plot we wish to capture rows with IPROCFROM "Agricultural_Land"
 # and IPROCTO values that start with "New_Productive_Forest"
 plot_filters = [
-    ([("Agricultural_Land", "C_Rich_Soils_Extraction_HOV"),
-    ("Agricultural_Land", "C_Rich_Soils_Extraction_SJA"),
-    ("Agricultural_Land", "C_Rich_Soils_Extraction_SYD"),
-    ("Agricultural_Land", "C_Rich_Soils_Extraction_MID"),
-    ("Agricultural_Land", "C_Rich_Soils_Extraction_NOR")],
-    "Carbon Rich Soil Extraction", "Oranges"),
+    # ([("Agricultural_Land", "C_Rich_Soils_Extraction_HOV"),
+    # ("Agricultural_Land", "C_Rich_Soils_Extraction_SJA"),
+    # ("Agricultural_Land", "C_Rich_Soils_Extraction_SYD"),
+    # ("Agricultural_Land", "C_Rich_Soils_Extraction_MID"),
+    # ("Agricultural_Land", "C_Rich_Soils_Extraction_NOR")],
+    # "Carbon Rich Soil Extraction", "Oranges"),
 
     ([("Agricultural_Land", "New_Productive_Forest_HOV"),
     ("Agricultural_Land", "New_Productive_Forest_SJA"),
@@ -897,12 +903,12 @@ plot_filters = [
     ("Agricultural_Land", "New_Productive_Forest_NOR")],
      "New Productive Forest", "Greens"),
 
-    ([("Productive_Forest", "Untouched_Forest_HOV"),
-    ("Productive_Forest", "Untouched_Forest_SJA"),
-    ("Productive_Forest", "Untouched_Forest_SYD"),
-    ("Productive_Forest", "Untouched_Forest_MID"),
-    ("Productive_Forest", "Untouched_Forest_NOR")],
-    "New Protected Forest", "Purples"),
+    # ([("Productive_Forest", "Untouched_Forest_HOV"),
+    # ("Productive_Forest", "Untouched_Forest_SJA"),
+    # ("Productive_Forest", "Untouched_Forest_SYD"),
+    # ("Productive_Forest", "Untouched_Forest_MID"),
+    # ("Productive_Forest", "Untouched_Forest_NOR")],
+    # "New Protected Forest", "Purples"),
 
     #  ([("Agricultural_Land", "Agriculture")],"Agricultural Land", "Greens"),
     #  ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest", "Oranges"),
@@ -910,6 +916,8 @@ plot_filters = [
       ([("Air_fuels_sum", "AirBuffer"),
         ("Road_fuels_sum", "RoadBuffer"),
         ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production", "Reds"),
+
+        ([("BioJet_Eff", "Air_fuels_sum"),("BioGasoline_Eff", "Road_fuels_sum"),],"Biofuels Fuel Production", "Reds"),
 
  ]
 
@@ -989,7 +997,7 @@ for filter_pairs, plot_title, cmap in plot_filters:
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
     sm.set_array([])
     cbar_ax = fig.add_axes([0.99, 0.15, 0.02, 0.7])
-    fig.colorbar(sm, cax=cbar_ax, orientation="vertical").set_label("[PJ]", fontsize=14, family="Arial")
+    fig.colorbar(sm, cax=cbar_ax, orientation="vertical").set_label("[Mha]", fontsize=14, family="Arial")
 
     plt.show()
     plt.savefig('Multiple_Scen_Map.svg')
