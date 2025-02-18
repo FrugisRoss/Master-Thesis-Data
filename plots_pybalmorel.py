@@ -26,6 +26,6 @@ print(df)
 
 
 #%%
-fig, ax = res.plot_profile(scenario='Base', region='Denmark', year=2050, commodity='Electricity')
+fig, ax = res.plot_profile(scenario='Base', region='Denmark', year=2050,commodity='heat')
                  
 # %%

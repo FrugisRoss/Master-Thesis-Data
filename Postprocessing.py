@@ -27,9 +27,9 @@ import plotly.graph_objects as go
 scenario_list = [
 #      ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model"),
 #  #    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case\model"),
-    #    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
-    #    ("CO2 Scenario -50% PF", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC-50PF\model"),
-    #   ("CO2 Scenario -90% PF", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC-90PF\model"),
+        ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
+        ("CO2 Scenario +150% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+150cost\model"),
+       ("CO2 Scenario +300% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+300cost\model"),
 
 #  #   ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case\model"),
 #    ("Biodiversity+CO2 Scenario ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
@@ -43,10 +43,10 @@ scenario_list = [
 #      ("Biodiversity+CO2 with Fossils Scenario -50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL-50NG\model"),
 # #     ("Biodiversity+CO2 with Fossils Scenario +50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL+50\model"),
 #  #   ("Biodiversity+CO2 with Fossils Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_FOSSIL\model"),
-    ("Biodiversity+CO2 Fossil -50% TC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC-50tc\model"),
+    # ("Biodiversity+CO2 Fossil -50% TC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC-50tc\model"),
 
-    ("Biodiversity+CO2 Fossil", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
-    ("Biodiversity+CO2 Fossil +50% TC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC+50tc\model"),
+    # ("Biodiversity+CO2 Fossil", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
+    # ("Biodiversity+CO2 Fossil +50% TC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC+50tc\model"),
 
 
 ]
@@ -94,6 +94,7 @@ def Import_BalmorelMR(file_path):
     df_CC_YCRAG = pd.DataFrame(df["CC_YCRAG"].records)
     df_F_CONS_YCRA = pd.DataFrame(df["F_CONS_YCRA"].records)
     df_EMI_YCRAG = pd.DataFrame(df["EMI_YCRAG"].records)
+    df_G_CAP_YCRAF = pd.DataFrame(df["G_CAP_YCRAF"].records)
     return df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG
 
 # ------------------------------------------------------------------------------
@@ -238,7 +239,7 @@ def multi_scenario_fuel_supply(
 
         # Unpack all four returned values
         df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
-        df_CC, df_F_CONS, df_EMI_b = Import_BalmorelMR(main_results_path)
+        df_CC, df_F_CONS, df_EMI_b, df_G_CAP_YCRAF = Import_BalmorelMR(main_results_path)
 
         # Filter by year
         df_FLOWC = df_FLOWC[df_FLOWC['Y'] == str(year)]
@@ -412,7 +413,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
         df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
-        df_CC, df_F_CONS, df_EMI_bal   = Import_BalmorelMR(main_results_path)
+        df_CC, df_F_CONS, df_EMI_bal, df_G_CAP_YCRAF   = Import_BalmorelMR(main_results_path)
 
         df_agg = group_EMI_YCRAG(df_EMI_opt, df_FLOWC, df_EMI_PROC)
 
@@ -545,7 +546,7 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
         df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
-        df_CC, df_F_CONS, df_EMI_bal   = Import_BalmorelMR(main_results_path)
+        df_CC, df_F_CONS, df_EMI_bal, df_G_CAP_YCRAF   = Import_BalmorelMR(main_results_path)
 
         df_flowc_filtered, df_f_cons_filtered = process_flows_and_consumption(df_FLOWC, df_F_CONS)
 
@@ -882,7 +883,9 @@ scenario_list = [
 
     ("Biodiversity+CO2 Fossil", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
     ("Biodiversity+CO2 Fossil +50% Transport Costs", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC+50tc\model\Optiflow_MainResults.gdx"),
-
+#         ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
+#         ("CO2 Scenario +150% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+150cost\model\Optiflow_MainResults.gdx"),
+#        ("CO2 Scenario +300% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+300cost\model\Optiflow_MainResults.gdx"),
 ]
 
 # === List of Filters to Apply ===
