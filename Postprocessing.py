@@ -28,9 +28,9 @@ scenario_list = [
     # ("CO2 Scenario +150% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+150cost\model"),
     # ("CO2 Scenario +300% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+300cost\model"),
     ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model"),
-    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
-     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
-     ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model"),
+    # ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
+    #  ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
+    #  ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model"),
 ]
 
 Resource_name = {
@@ -87,11 +87,10 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC, df_EMI_PROC):
     df_emi = df_EMI_YCRAG.copy()
     df_emi['Category'] = None
 
-    # Define masks for categorization
+    # Define masks for categorization in df_EMI_YCRAG
     mask_ind_emi  = df_emi['AAA'].str.contains('IND',  case=False, na=False)
     mask_idvu_emi = df_emi['AAA'].str.contains('IDVU', case=False, na=False)
     mask_chp_emi  = df_emi['AAA'].str.contains('DK1_A|DK2_A', case=False, na=False)
-
     mask_positive = df_emi['value'] > 0
     mask_negative = df_emi['value'] < 0
 
@@ -105,7 +104,7 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC, df_EMI_PROC):
     df_emi.loc[mask_negative & mask_idvu_emi, 'Category'] = 'Individual with BECCS'
     df_emi.loc[mask_negative & mask_chp_emi,  'Category'] = 'CHP with BECCS'
 
-    # Process CO2 flows from df_FLOWC
+    # Define the mapping based on IPROCFROM
     co2_map = {
         'CO2_DAC_Total': 'DAC',
         'CO2_Biochar_Sum': 'Biochar Sequestration',
@@ -126,30 +125,54 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC, df_EMI_PROC):
         'New_Productive_Forest_MID': 'New Productive Forest',
         'New_Productive_Forest_NOR': 'New Productive Forest'
     }
-    co2_list = [
-        'CO2_Biochar_Sum', 'CO2_Biogas',
-        'Untouched_Forest_HOV', 'Untouched_Forest_SJA', 'Untouched_Forest_SYD', 'Untouched_Forest_MID', 'Untouched_Forest_NOR',
-        'C_Rich_Soils_Extraction_HOV', 'C_Rich_Soils_Extraction_SJA', 'C_Rich_Soils_Extraction_SYD', 'C_Rich_Soils_Extraction_MID', 'C_Rich_Soils_Extraction_NOR',
-        'New_Productive_Forest_HOV', 'New_Productive_Forest_SJA', 'New_Productive_Forest_SYD', 'New_Productive_Forest_MID', 'New_Productive_Forest_NOR'
+
+    # Define list of tuples (IPROCFROM, IPROCTO_filter)
+    # For tuples where the second element is None, only IPROCFROM is checked.
+    # Otherwise, the IPROCTO column must contain the provided substring (case-insensitive).
+    co2_tuples = [
+        ('CO2_Biochar_Sum', 'CO2_Biochar_Buffer'),
+        ('CO2_Biogas', 'CO2'),
+        ('Untouched_Forest_HOV', 'CO2_Land'),
+        ('Untouched_Forest_SJA', 'CO2_Land'),
+        ('Untouched_Forest_SYD', 'CO2_Land'),
+        ('Untouched_Forest_MID', 'CO2_Land'),
+        ('Untouched_Forest_NOR', 'CO2_Land'),
+        ('C_Rich_Soils_Extraction_HOV', 'CO2_Land'),
+        ('C_Rich_Soils_Extraction_SJA', 'CO2_Land'),
+        ('C_Rich_Soils_Extraction_SYD', 'CO2_Land'),
+        ('C_Rich_Soils_Extraction_MID', 'CO2_Land'),
+        ('C_Rich_Soils_Extraction_NOR', 'CO2_Land'),
+        ('New_Productive_Forest_HOV', 'CO2_Land'),
+        ('New_Productive_Forest_SJA', 'CO2_Land'),
+        ('New_Productive_Forest_SYD', 'CO2_Land'),
+        ('New_Productive_Forest_MID', 'CO2_Land'),
+        ('New_Productive_Forest_NOR', 'CO2_Land'),
+        # For DAC rows, filter on IPROCTO containing 'CO2_Seq'
+       # ('CO2_DAC_Total', 'CO2')
     ]
-    df_co2 = df_FLOWC[df_FLOWC['IPROCFROM'].isin(co2_list)].copy()
+
+    # Function to check if a row in df_FLOWC matches any tuple criteria.
+    def matches_tuple(row):
+        for iprocfrom, iprocto_filter in co2_tuples:
+            if row['IPROCFROM'] == iprocfrom:
+                if iprocto_filter is None:
+                    return True
+                # Check if IPROCTO contains the substring (case-insensitive)
+                if pd.notnull(row['IPROCTO']) and iprocto_filter.lower() in row['IPROCTO'].lower():
+                    return True
+        return False
+
+    # Apply the filter on df_FLOWC using the tuple criteria
+    df_co2 = df_FLOWC[df_FLOWC.apply(matches_tuple, axis=1)].copy()
+    # Map the category based on IPROCFROM using co2_map
     df_co2['Category'] = df_co2['IPROCFROM'].map(co2_map)
     df_co2['value'] = df_co2['value'] * -1000  # Convert from Mt to kton and apply negative sign
 
-    # DAC -> Sequestration
-    df_co2_dac = df_FLOWC[
-        (df_FLOWC['IPROCFROM'] == 'CO2_DAC_Total') &
-        (df_FLOWC['IPROCTO'].str.contains('CO2_Seq', case=False, na=False))
-    ].copy()
-    df_co2_dac['Category'] = df_co2_dac['IPROCFROM'].map(co2_map)
-    df_co2_dac['value'] = df_co2_dac['value'] * -1000
-
-    # Check if df_EMI_PROC is empty or lacks the 'PROC' column
+    # Process df_EMI_PROC as before for fuel sources
     if df_EMI_PROC.empty or 'PROC' not in df_EMI_PROC.columns:
         print("Warning: df_EMI_PROC is empty or missing 'PROC' column.")
         df_fuel = pd.DataFrame(columns=['Category', 'value'])  # Empty DataFrame
     else:
-        # Add Marine Shipping Diesel Oil, Kerosene, and Diesel from df_EMI_PROC
         fuel_map = {
             'MDOSource': 'Marine Shipping Diesel Oil',
             'KeroseneSource': 'Kerosene',
@@ -160,8 +183,7 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC, df_EMI_PROC):
         df_fuel['Category'] = df_fuel['PROC'].map(fuel_map)
 
     # Combine all dataframes
-    df_final = pd.concat([df_emi, df_co2, df_co2_dac, df_fuel], ignore_index=True)
-
+    df_final = pd.concat([df_emi, df_co2, df_fuel], ignore_index=True)
     # Aggregate by category
     df_agg = df_final.groupby('Category', as_index=False)['value'].sum()
 
@@ -1234,7 +1256,7 @@ multi_scenario_fuel_supply(
 
 multi_scenario_stacked_emissions(
     scenario_list,
-    plot_title="CO2 Emissions across Scenarios"
+    plot_title="CO2 Emissions "
 )
 
 multi_scenario_biomass_consumption(
@@ -1254,7 +1276,7 @@ multi_scenario_pro_histogram(
 
 multi_scenario_fuel_share_histogram(
     scenario_list,
-    plot_title="REP by Scenario"
+    plot_title="Energy Production by Source"
 )
 #%%
 
