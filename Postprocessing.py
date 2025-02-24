@@ -11,7 +11,6 @@ import os
 import seaborn as sns
 import plotly.express as px
 import plotly.graph_objects as go
-import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
@@ -22,33 +21,16 @@ import plotly.graph_objects as go
 
 # ------------------------------------------------------------------------------
 # A) DEFINE YOUR SCENARIOS
-#    Each scenario is a tuple: (scenario_name, scenario_path)
+# Each scenario is a tuple: (scenario_name, scenario_path)
 # ------------------------------------------------------------------------------
 scenario_list = [
-#      ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model"),
-#  #    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case\model"),
-        ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
-        ("CO2 Scenario +150% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+150cost\model"),
-       ("CO2 Scenario +300% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+300cost\model"),
-
-#  #   ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case\model"),
-#    ("Biodiversity+CO2 Scenario ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
-
-#    ("Biodiversity+CO2 with Fossils Scenario -50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL-50NG\model"),
-#        ("Biodiversity+CO2 with Fossils Scenario ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model"),
-#        ("Biodiversity+CO2 with Fossils Scenario +50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL+50NG\model"),
-    # ("Biodiversity+CO2 with Fossils Scenario -50% PF ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL-50PF\model"),
-    # ("Biodiversity+CO2 with Fossils Scenario -90% PF ", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL-90PF\model"),
-#     ("Biodiversity+CO2 with Fossils Scenario +50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL+50NG\model"),
-#      ("Biodiversity+CO2 with Fossils Scenario -50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL-50NG\model"),
-# #     ("Biodiversity+CO2 with Fossils Scenario +50% Price of NG", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL+50\model"),
-#  #   ("Biodiversity+CO2 with Fossils Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Balmorel\Biodiversity_Case_FOSSIL\model"),
-    # ("Biodiversity+CO2 Fossil -50% TC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC-50tc\model"),
-
-    # ("Biodiversity+CO2 Fossil", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
-    # ("Biodiversity+CO2 Fossil +50% TC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC+50tc\model"),
-
-
+    # ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
+    # ("CO2 Scenario +150% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+150cost\model"),
+    # ("CO2 Scenario +300% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+300cost\model"),
+    ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model"),
+    ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model"),
+     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model"),
+     ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model"),
 ]
 
 Resource_name = {
@@ -95,7 +77,8 @@ def Import_BalmorelMR(file_path):
     df_F_CONS_YCRA = pd.DataFrame(df["F_CONS_YCRA"].records)
     df_EMI_YCRAG = pd.DataFrame(df["EMI_YCRAG"].records)
     df_G_CAP_YCRAF = pd.DataFrame(df["G_CAP_YCRAF"].records)
-    return df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG
+    df_PRO_YCRAGF = pd.DataFrame(df["PRO_YCRAGF"].records)
+    return df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF
 
 # ------------------------------------------------------------------------------
 # C) DATA-PROCESSING FUNCTIONS
@@ -191,9 +174,9 @@ def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
     df_f_cons_filtered.loc[mask_idv,'Category'] = 'Individual Users Heating'
 
     return df_flowc_filtered, df_f_cons_filtered
-  
+
 # ------------------------------------------------------------------------------
-# D) MULTI-SCENARIO PLOTTING FUNCTIONS (X-axis title REMOVED)
+# D) MULTI-SCENARIO PLOTTING FUNCTIONS (EXISTING PLOTS)
 # ------------------------------------------------------------------------------
 def multi_scenario_fuel_supply(
     scenarios,
@@ -239,7 +222,7 @@ def multi_scenario_fuel_supply(
 
         # Unpack all four returned values
         df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
-        df_CC, df_F_CONS, df_EMI_b, df_G_CAP_YCRAF = Import_BalmorelMR(main_results_path)
+        df_CC, df_F_CONS, df_EMI_b, df_G_CAP_YCRAF, df_PRO_YCRAGF = Import_BalmorelMR(main_results_path) 
 
         # Filter by year
         df_FLOWC = df_FLOWC[df_FLOWC['Y'] == str(year)]
@@ -413,7 +396,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
         df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
-        df_CC, df_F_CONS, df_EMI_bal, df_G_CAP_YCRAF   = Import_BalmorelMR(main_results_path)
+        df_CC, df_F_CONS, df_EMI_bal, df_G_CAP_YCRAF, df_PRO_YCRAGF   = Import_BalmorelMR(main_results_path)
 
         df_agg = group_EMI_YCRAG(df_EMI_opt, df_FLOWC, df_EMI_PROC)
 
@@ -522,7 +505,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
     )
 
     fig.show()
-   # fig.write_image('CO2_Emissions.svg')
+    # fig.write_image('CO2_Emissions.svg')
 
 def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumption Comparison"):
     fig = make_subplots(
@@ -546,7 +529,7 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
         df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
-        df_CC, df_F_CONS, df_EMI_bal, df_G_CAP_YCRAF   = Import_BalmorelMR(main_results_path)
+        df_CC, df_F_CONS, df_EMI_bal, df_G_CAP_YCRAF, df_PRO_YCRAGF   = Import_BalmorelMR(main_results_path)
 
         df_flowc_filtered, df_f_cons_filtered = process_flows_and_consumption(df_FLOWC, df_F_CONS)
 
@@ -689,11 +672,536 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
     )
 
     fig.show()
-   # fig.write_image('Biomass_Use.svg')
+    # fig.write_image('Biomass_Use.svg')
+
+
+def multi_scenario_gcap_histogram(scenarios, plot_title="G_CAP_YCRAF Histogram by Scenario"):
+    """
+    For each scenario, this function plots a histogram using the df_G_CAP_YCRAF data.
+    The x-axis contains one column per unique 'COMMODITY', and for each commodity the bar is stacked by 'TECH_TYPE'
+    (with friendly technology names and fixed colors shown in the legend). Rows where 'TECH_TYPE'
+    contains 'STORAGE' are excluded.
+    Only values higher than 10e-10 (i.e. >= 1e-9) are plotted.
+    """
+    # Unified mapping from technology codes to friendly names.
+    tech_name_map = {
+        "CHP-BACK-PRESSURE": "CHP Back-Pressure",
+        "ELECT-TO-HEAT": "Electric to Heat",
+        "INTERSEASONAL-HEAT-STORAGE": "Interseasonal Heat Storage",
+        "INTRASEASONAL-HEAT-STORAGE": "Intraseasonal Heat Storage",
+        "SOLAR-PV": "Solar PV",
+        "HYDRO-RUN-OF-RIVER": "Hydro Run-of-River",
+        "WIND-ON": "Wind Onshore",
+        "WIND-OFF": "Wind Offshore",
+        "ELECTROLYZER": "Electrolyzer",
+        "H2-STORAGE": "H2 Storage",
+        "BOILERS": "Boilers",
+        "CHP-EXTRACTION": "CHP Extraction",
+        "INTRASEASONAL-ELECT-STORAGE": "Intraseasonal Electro Storage",
+        "HYDRO-RESERVOIRS": "Hydro Reservoirs",
+        "CONDENSING": "Condensing",
+        "FUELCELL": "Fuel Cell",
+        "STEAMREFORMING": "Steam Reforming",
+    }
+    tech_color_map = {
+        "CHP Back-Pressure": "#8B4513",         # brown
+        "Electric to Heat": "#d62728",           # red
+        "Interseasonal Heat Storage": "#2ca02c",
+        "Intraseasonal Heat Storage": "#d62728",
+        "Solar PV": "#ffeb3b",                   # yellow
+        "Hydro Run-of-River": "#005f73",         # dark-blue/teal
+        "Wind Onshore": "#87CEFA",               # light blue
+        "Wind Offshore": "#ADD8E6",              # light blue
+        "Electrolyzer": "#32CD32",               # lighter, vivid green
+        "H2 Storage": "#17becf",
+        "Boilers": "#FFA500",                    # orange
+        "CHP Extraction": "#556B2F",             # dark olive green
+        "Intraseasonal Electro Storage": "#98df8a",
+        "Hydro Reservoirs": "#003f5c",           # dark blue
+        "Condensing": "#c5b0d5",
+        "Fuel Cell": "#c49c94",
+        "Steam Reforming": "#f7b6d2"
+    }
+
+    # Fallback color palette if a tech is not in tech_color_map.
+    color_palette = px.colors.qualitative.Plotly
+    color_index = {}
+
+    # Set threshold: Only values >= 10e-10 (1e-9) will be plotted.
+    threshold = 1e-9
+
+    fig = make_subplots(
+        rows=1,
+        cols=len(scenarios),
+        shared_yaxes=True,
+        subplot_titles=[s[0] for s in scenarios]
+    )
+
+    # Global set to track legend entries (across scenarios)
+    encountered_legends = set()
+
+    for idx, (scenario_name, scenario_path) in enumerate(scenarios):
+        main_results_path = os.path.join(scenario_path, "MainResults.gdx")
+        # Load Balmorel results.
+        df_CC, df_F_CONS, df_EMI, df_G_CAP_YCRAF, df_PRO_YCRAGF = Import_BalmorelMR(main_results_path)
+
+        # Filter for rows where 'C' is 'DENMARK'
+        df_G_CAP_YCRAF = df_G_CAP_YCRAF[df_G_CAP_YCRAF['C'] == 'DENMARK']
+        # Exclude rows where 'TECH_TYPE' contains 'STORAGE'
+        if 'TECH_TYPE' in df_G_CAP_YCRAF.columns:
+            df_G_CAP_YCRAF = df_G_CAP_YCRAF[~df_G_CAP_YCRAF['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)]
+
+        # Group by 'COMMODITY' and 'TECH_TYPE'
+        grouped = df_G_CAP_YCRAF.groupby(['COMMODITY', 'TECH_TYPE'], as_index=False)['value'].sum()
+        commodities = grouped['COMMODITY'].unique().tolist()
+        tech_list = grouped['TECH_TYPE'].unique().tolist()
+
+        for tech in tech_list:
+            friendly_name = tech_name_map.get(tech, tech)
+            color = tech_color_map.get(friendly_name)
+            if color is None:
+                if tech not in color_index:
+                    color_index[tech] = color_palette[len(color_index) % len(color_palette)]
+                color = color_index[tech]
+
+            y_vals = []
+            for com in commodities:
+                # Retrieve value and apply threshold filtering.
+                val_series = grouped.loc[(grouped['COMMODITY'] == com) & (grouped['TECH_TYPE'] == tech), 'value']
+                value = val_series.values[0] if not val_series.empty else 0
+                if value < threshold:
+                    value = 0
+                y_vals.append(value)
+            # Skip trace if total is zero after threshold filtering.
+            if sum(y_vals) == 0:
+                continue
+            if tech not in encountered_legends:
+                show_legend = True
+                encountered_legends.add(tech)
+            else:
+                show_legend = False
+
+            fig.add_trace(
+                go.Bar(
+                    x=commodities,
+                    y=y_vals,
+                    name=friendly_name,
+                    marker_color=color,
+                    showlegend=show_legend,
+                ),
+                row=1, col=idx+1
+            )
+
+        fig.update_xaxes(
+            title_text='COMMODITY',
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=False,
+            row=1, col=idx+1
+        )
+        y_title = '[GW]' if idx == 0 else ''
+        fig.update_yaxes(
+            title_text=y_title,
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.6,
+            zeroline=True,
+            zerolinewidth=0.6,
+            zerolinecolor='lightgray',
+            row=1, col=idx+1
+        )
+
+    fig.update_layout(
+        title=plot_title,
+        barmode='stack',
+        font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        legend=dict(
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1,
+            font=dict(size=12)
+        ),
+        margin=dict(l=50, r=20, t=80, b=60)
+    )
+    fig.show()
+
+    # fig.write_image('G_CAP_YCRAF_Histogram.svg')
+
+
+def multi_scenario_pro_histogram(scenarios, plot_title="PRO_YCRAGF Histogram by Scenario"):
+    """
+    For each scenario, this function plots a histogram using the df_PRO_YCRAGF data.
+    The x-axis contains one column per unique 'COMMODITY', and for each commodity the bar is stacked by 'TECH_TYPE'
+    (with friendly technology names and fixed colors shown in the legend). Rows where 'TECH_TYPE'
+    contains 'STORAGE' are excluded.
+    Only values higher than 10e-9 (i.e. ≥ 1e-8) are plotted.
+    """
+
+    # Set threshold for PRO_YCRAGF histogram: only values >= 10e-9 (i.e. 1e-8) are plotted.
+    threshold_pro = 1e-8
+
+    tech_name_map = {
+        "CHP-BACK-PRESSURE": "CHP Back-Pressure",
+        "ELECT-TO-HEAT": "Electric to Heat",
+        "INTERSEASONAL-HEAT-STORAGE": "Interseasonal Heat Storage",
+        "INTRASEASONAL-HEAT-STORAGE": "Intraseasonal Heat Storage",
+        "SOLAR-PV": "Solar PV",
+        "HYDRO-RUN-OF-RIVER": "Hydro Run-of-River",
+        "WIND-ON": "Wind Onshore",
+        "WIND-OFF": "Wind Offshore",
+        "ELECTROLYZER": "Electrolyzer",
+        "H2-STORAGE": "H2 Storage",
+        "BOILERS": "Boilers",
+        "CHP-EXTRACTION": "CHP Extraction",
+        "INTRASEASONAL-ELECT-STORAGE": "Intraseasonal Electro Storage",
+        "HYDRO-RESERVOIRS": "Hydro Reservoirs",
+        "CONDENSING": "Condensing",
+        "FUELCELL": "Fuel Cell",
+        "STEAMREFORMING": "Steam Reforming",
+    }
+    tech_color_map = {
+        "CHP Back-Pressure": "#8B4513",         # brown
+        "Electric to Heat": "#d62728",           # red
+        "Interseasonal Heat Storage": "#2ca02c",
+        "Intraseasonal Heat Storage": "#d62728",
+        "Solar PV": "#ffeb3b",                   # yellow
+        "Hydro Run-of-River": "#005f73",         # dark-blue/teal
+        "Wind Onshore": "#87CEFA",               # light blue
+        "Wind Offshore": "#ADD8E6",              # light blue
+        "Electrolyzer": "#32CD32",               # lighter, vivid green
+        "H2 Storage": "#17becf",
+        "Boilers": "#FFA500",                    # orange
+        "CHP Extraction": "#556B2F",             # dark olive green
+        "Intraseasonal Electro Storage": "#98df8a",
+        "Hydro Reservoirs": "#003f5c",           # dark blue
+        "Condensing": "#c5b0d5",
+        "Fuel Cell": "#c49c94",
+        "Steam Reforming": "#f7b6d2"
+    }
+
+    color_palette = px.colors.qualitative.Plotly
+    color_index = {}
+
+    fig = make_subplots(
+        rows=1,
+        cols=len(scenarios),
+        shared_yaxes=True,
+        subplot_titles=[s[0] for s in scenarios]
+    )
+
+    encountered_legends = set()
+
+    for idx, (scenario_name, scenario_path) in enumerate(scenarios):
+        main_results_path = os.path.join(scenario_path, "MainResults.gdx")
+        df_CC, df_F_CONS, df_EMI, df_G_CAP_YCRAF, df_PRO_YCRAGF = Import_BalmorelMR(main_results_path)
+
+        df_PRO_YCRAGF = df_PRO_YCRAGF[df_PRO_YCRAGF['C'] == 'DENMARK']
+        if 'TECH_TYPE' in df_PRO_YCRAGF.columns:
+            df_PRO_YCRAGF = df_PRO_YCRAGF[~df_PRO_YCRAGF['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)]
+
+        grouped = df_PRO_YCRAGF.groupby(['COMMODITY', 'TECH_TYPE'], as_index=False)['value'].sum()
+        commodities = grouped['COMMODITY'].unique().tolist()
+        tech_list = grouped['TECH_TYPE'].unique().tolist()
+
+        for tech in tech_list:
+            friendly_name = tech_name_map.get(tech, tech)
+            color = tech_color_map.get(friendly_name)
+            if color is None:
+                if tech not in color_index:
+                    color_index[tech] = color_palette[len(color_index) % len(color_palette)]
+                color = color_index[tech]
+
+            y_vals = []
+            for com in commodities:
+                val_series = grouped.loc[(grouped['COMMODITY'] == com) & (grouped['TECH_TYPE'] == tech), 'value']
+                value = val_series.values[0] if not val_series.empty else 0
+                # Only include values above threshold
+                if value < threshold_pro:
+                    value = 0
+                y_vals.append(value)
+            # If the trace has no value above threshold, skip it.
+            if sum(y_vals) == 0:
+                continue
+
+            if tech not in encountered_legends:
+                show_legend = True
+                encountered_legends.add(tech)
+            else:
+                show_legend = False
+
+            fig.add_trace(
+                go.Bar(
+                    x=commodities,
+                    y=y_vals,
+                    name=friendly_name,
+                    marker_color=color,
+                    showlegend=show_legend,
+                ),
+                row=1, col=idx+1
+            )
+
+        fig.update_xaxes(
+            title_text='COMMODITY',
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=False,
+            row=1, col=idx+1
+        )
+        y_title = '[TWh]' if idx == 0 else ''
+        fig.update_yaxes(
+            title_text=y_title,
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.6,
+            zeroline=True,
+            zerolinewidth=0.6,
+            zerolinecolor='lightgray',
+            row=1, col=idx+1
+        )
+
+    fig.update_layout(
+        title=plot_title,
+        barmode='stack',
+        font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        legend=dict(
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1,
+            font=dict(size=12)
+        ),
+        margin=dict(l=50, r=20, t=80, b=60)
+    )
+    fig.show()
+
+
+def multi_scenario_fuel_share_histogram(scenario_list, plot_title="Production Fuel Share Histogram"):
+    """
+    For each scenario in scenario_list, this function plots a histogram where each column corresponds to a 
+    'COMMODITY' (except Hydrogen) and the bar is stacked by fuel type (from the 'FFF' column). Each fuel's 
+    bar height is its share of the total production for that commodity.
+    
+    Each scenario in scenario_list is a tuple of (scenario_name, folder_path) where folder_path contains 
+    the file 'MainResults.gdx'.
+    
+    Global fuel mappings (based on provided fuel list):
+      - NATGAS      -> Natural Gas
+      - ELECTRIC    -> Electric
+      - HEAT        -> Heat
+      - SUN         -> Solar
+      - WATER       -> Water
+      - MUNIWASTE   -> Municipal Waste
+      - WIND        -> Wind
+      - HYDROGEN    -> Hydrogen
+      - LIGHTOIL    -> Light Oil
+      - COAL        -> Coal
+      - LIGNITE     -> Lignite
+      - WOODCHIPS   -> Woodchips
+      - WOODPELLETS -> Wood Pellets
+      - FUELOIL     -> Fuel Oil
+      - WOOD        -> Wood
+      - STRAW       -> Straw
+    
+    In addition, rows where 'TECH_TYPE' contains 'STORAGE' (case insensitive) are excluded from both 
+    the total production and the plotted shares.
+    
+    Only fuel shares higher than 10e-2 (i.e. 0.1) are plotted; values below this threshold are set to zero.
+    
+    The produced commodity "HYDROGEN" is omitted entirely from the plot.
+    
+    Parameters:
+    - scenario_list: List of tuples, where each tuple is (scenario_name, folder_path)
+    - plot_title: Title of the overall plot
+    """
+
+    # Threshold for plotting share values.
+    threshold = 10e-4  # 0.1
+
+    # Global mapping: fuel code -> friendly name
+    fuel_name_map = {
+        'NATGAS': 'Natural Gas',
+        'ELECTRIC': 'Electric',
+        'HEAT': 'Heat',
+        'SUN': 'Solar',
+        'WATER': 'Water',
+        'MUNIWASTE': 'Municipal Waste',
+        'WIND': 'Wind',
+        'HYDROGEN': 'Hydrogen',
+        'LIGHTOIL': 'Light Oil',
+        'COAL': 'Coal',
+        'LIGNITE': 'Lignite',
+        'WOODCHIPS': 'Woodchips',
+        'WOODPELLETS': 'Wood Pellets',
+        'FUELOIL': 'Fuel Oil',
+        'WOOD': 'Wood',
+        'STRAW': 'Straw'
+    }
+    
+    # Global fixed color mapping for each friendly fuel name.
+    fuel_color_map = {
+        'Natural Gas': '#d62728',    # red
+        'Electric': '#1f77b4',         # blue
+        'Heat': '#ff7f0e',             # orange
+        'Solar': '#ffeb3b',            # yellow
+        'Water': '#17becf',            # cyan
+        'Municipal Waste': '#8c564b',  # brownish
+        'Wind': '#2ca02c',             # green
+        'Hydrogen': '#9467bd',         # purple
+        'Light Oil': '#e377c2',        # pink
+        'Coal': '#7f7f7f',             # grey
+        'Lignite': '#bcbd22',          # olive
+        'Woodchips': '#8c6d31',        # darker brown
+        'Wood Pellets': '#b5cf6b',     # light green
+        'Fuel Oil': '#e7ba52',         # mustard
+        'Wood': '#cedb9c',             # pale green
+        'Straw': '#cedb9c'
+    }
+    
+    # Create one subplot per scenario.
+    fig = make_subplots(
+        rows=1,
+        cols=len(scenario_list),
+        shared_yaxes=True,
+        subplot_titles=[s[0] for s in scenario_list]
+    )
+    
+    # Track fuels already added to the legend.
+    encountered_legends = set()
+    
+    for idx, (scenario_name, scenario_folder) in enumerate(scenario_list):
+        # Build the path to the main results file inside the given folder.
+        main_results_path = os.path.join(scenario_folder, "MainResults.gdx")
+        
+        # Check if MainResults.gdx exists in the folder.
+        if not os.path.exists(main_results_path):
+            raise FileNotFoundError(f"MainResults.gdx not found in folder: {scenario_folder}")
+        
+        # Import data (assuming Import_BalmorelMR returns a tuple where the 5th element is df_PRO_YCRAGF).
+        _, _, _, _, df_PRO_YCRAGF = Import_BalmorelMR(main_results_path)
+        
+        # Exclude rows where 'TECH_TYPE' contains 'STORAGE' (if that column exists).
+        if 'TECH_TYPE' in df_PRO_YCRAGF.columns:
+            df_PRO_YCRAGF = df_PRO_YCRAGF[~df_PRO_YCRAGF['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)]
+        
+        # Group by 'COMMODITY' and 'FFF' to sum production values.
+        grouped = df_PRO_YCRAGF.groupby(['COMMODITY', 'FFF'], as_index=False)['value'].sum()
+        
+        # Remove rows where the produced commodity is Hydrogen (case insensitive).
+        grouped = grouped[~grouped['COMMODITY'].str.upper().eq("HYDROGEN")]
+        
+        # Compute the total production per commodity.
+        totals = grouped.groupby('COMMODITY')['value'].sum().reset_index().rename(columns={'value': 'total_value'})
+        
+        # Merge the totals back with the grouped data.
+        merged = pd.merge(grouped, totals, on='COMMODITY')
+        
+        # Calculate the share for each fuel type.
+        merged['share'] = merged['value'] / merged['total_value']
+        
+        # Get unique commodities and fuels present in this scenario.
+        commodities = merged['COMMODITY'].unique().tolist()
+        fuels_in_scenario = merged['FFF'].unique().tolist()
+
+        # For each fuel in the scenario, use the global maps for friendly name and color.
+        for fuel in fuels_in_scenario:
+            friendly_name = fuel_name_map.get(fuel, fuel)
+            color = fuel_color_map.get(friendly_name)
+            if color is None:
+                color_palette = px.colors.qualitative.Plotly
+                color = color_palette[hash(friendly_name) % len(color_palette)]
+            
+            # Prepare the share values per commodity, applying the threshold.
+            fuel_shares = []
+            for com in commodities:
+                share_series = merged.loc[(merged['COMMODITY'] == com) & (merged['FFF'] == fuel), 'share']
+                if not share_series.empty:
+                    share_val = share_series.values[0]
+                    # Only include the share if it is above the threshold; otherwise set to 0.
+                    fuel_shares.append(share_val if share_val >= threshold else 0)
+                else:
+                    fuel_shares.append(0)
+            
+            # Only add the trace if there is any production for this fuel in the scenario.
+            if sum(fuel_shares) > 0:
+                fig.add_trace(
+                    go.Bar(
+                        x=commodities,
+                        y=fuel_shares,
+                        name=friendly_name,
+                        marker_color=color,
+                        # Only show legend once (in the first subplot) for each fuel.
+                        showlegend=True if friendly_name not in encountered_legends else False,
+                    ),
+                    row=1,
+                    col=idx+1
+                )
+                encountered_legends.add(friendly_name)
+        
+        # Update subplot x-axes.
+        fig.update_xaxes(
+            title_text='COMMODITY',
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=False,
+            row=1, col=idx+1
+        )
+        # Only label the y-axis in the first subplot.
+        y_title = 'Share of Production' if idx == 0 else ''
+        fig.update_yaxes(
+            title_text=y_title,
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.6,
+            zeroline=True,
+            zerolinewidth=0.6,
+            zerolinecolor='lightgray',
+            row=1, col=idx+1,
+            tickformat=".0%"
+        )
+    
+    # Update overall layout.
+    fig.update_layout(
+        title=plot_title,
+        barmode='stack',
+        font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        legend=dict(
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1,
+            font=dict(size=12)
+        ),
+        margin=dict(l=50, r=20, t=80, b=60)
+    )
+    
+    fig.show()
+
 
 
 # ------------------------------------------------------------------------------
-# Execute plotting functions and save the plots as SVG
+# F) Execute plotting functions and save the plots as needed
 # ------------------------------------------------------------------------------
 multi_scenario_fuel_supply(
     scenario_list,
@@ -714,7 +1222,20 @@ multi_scenario_biomass_consumption(
     plot_title="Biomass Consumption across Scenarios"
 )
 
+multi_scenario_gcap_histogram(
+    scenario_list,
+    plot_title="Total Installed Capacity by Scenario"
+)
 
+multi_scenario_pro_histogram(
+    scenario_list,
+    plot_title="Production by Scenario"
+)
+
+multi_scenario_fuel_share_histogram(
+    scenario_list,
+    plot_title="REP by Scenario"
+)
 #%%
 
 # Set a system font to avoid missing font warnings
