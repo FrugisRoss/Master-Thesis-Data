@@ -108,11 +108,30 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC, df_EMI_PROC):
     # Process CO2 flows from df_FLOWC
     co2_map = {
         'CO2_DAC_Total': 'DAC',
-        'CO2_Land': 'Land Solutions',
         'CO2_Biochar_Sum': 'Biochar Sequestration',
-        'CO2_Biogas': 'Biogas'
+        'CO2_Biogas': 'Biogas',
+        'Untouched_Forest_HOV': 'New Protected Forest',
+        'Untouched_Forest_SJA': 'New Protected Forest',
+        'Untouched_Forest_SYD': 'New Protected Forest',
+        'Untouched_Forest_MID': 'New Protected Forest',
+        'Untouched_Forest_NOR': 'New Protected Forest',
+        'C_Rich_Soils_Extraction_HOV': 'Carbon Rich Soils Extraction',
+        'C_Rich_Soils_Extraction_SJA': 'Carbon Rich Soils Extraction',
+        'C_Rich_Soils_Extraction_SYD': 'Carbon Rich Soils Extraction',
+        'C_Rich_Soils_Extraction_MID': 'Carbon Rich Soils Extraction',
+        'C_Rich_Soils_Extraction_NOR': 'Carbon Rich Soils Extraction',
+        'New_Productive_Forest_HOV': 'New Productive Forest',
+        'New_Productive_Forest_SJA': 'New Productive Forest',
+        'New_Productive_Forest_SYD': 'New Productive Forest',
+        'New_Productive_Forest_MID': 'New Productive Forest',
+        'New_Productive_Forest_NOR': 'New Productive Forest'
     }
-    co2_list = ['CO2_Land', 'CO2_Biochar_Sum', 'CO2_Biogas']
+    co2_list = [
+        'CO2_Biochar_Sum', 'CO2_Biogas',
+        'Untouched_Forest_HOV', 'Untouched_Forest_SJA', 'Untouched_Forest_SYD', 'Untouched_Forest_MID', 'Untouched_Forest_NOR',
+        'C_Rich_Soils_Extraction_HOV', 'C_Rich_Soils_Extraction_SJA', 'C_Rich_Soils_Extraction_SYD', 'C_Rich_Soils_Extraction_MID', 'C_Rich_Soils_Extraction_NOR',
+        'New_Productive_Forest_HOV', 'New_Productive_Forest_SJA', 'New_Productive_Forest_SYD', 'New_Productive_Forest_MID', 'New_Productive_Forest_NOR'
+    ]
     df_co2 = df_FLOWC[df_FLOWC['IPROCFROM'].isin(co2_list)].copy()
     df_co2['Category'] = df_co2['IPROCFROM'].map(co2_map)
     df_co2['value'] = df_co2['value'] * -1000  # Convert from Mt to kton and apply negative sign
@@ -381,12 +400,13 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
         "CHP with BECCS":              "#f27ed3",
         "Biogas":                      "#c47900",
         "DAC":                         "#8900c4",
-        "Land Solutions":              "#D9D9D9",
         "Biochar Sequestration":       "#5c3f3d",
         "Marine Shipping Diesel Oil":  "#0057b8",
         "Kerosene":                    "#ff4500",
-        "Diesel":                      "#ffa500"
-    }
+        "Diesel":                      "#ffa500",
+        "Carbon Rich Soils Extraction": "#ffff00",  # yellow 
+        "New Productive Forest":       "#f4a460"   # sandy brown
+        }
     fallback_color = "#999999"
 
     encountered_categories = set()
