@@ -19,15 +19,16 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 
+#%%
 # ------------------------------------------------------------------------------
 # A) DEFINE YOUR SCENARIOS
 # Each scenario is a tuple: (scenario_name, scenario_path)
 # ------------------------------------------------------------------------------
 scenario_list = [
-     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case\model"),
-     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model"),
-     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC\model"),
-     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL\model"),
+     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_Biosto\model"),
+     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_Biosto\model"),
+     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_Biosto\model"),
+     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL_Biosto\model"),
     
 
 ]
@@ -108,7 +109,6 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC, df_EMI_PROC):
     co2_map = {
         'CO2_DAC_Total': 'DAC',
         'CO2_Biochar_Sum': 'Biochar Sequestration',
-        'CO2_Biogas': 'Biogas',
         'Untouched_Forest_HOV': 'New Protected Forest',
         'Untouched_Forest_SJA': 'New Protected Forest',
         'Untouched_Forest_SYD': 'New Protected Forest',
@@ -131,7 +131,6 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC, df_EMI_PROC):
     # Otherwise, the IPROCTO column must contain the provided substring (case-insensitive).
     co2_tuples = [
         ('CO2_Biochar_Sum', 'CO2_Biochar_Buffer'),
-        ('CO2_Biogas', 'CO2'),
         ('Untouched_Forest_HOV', 'CO2_Land'),
         ('Untouched_Forest_SJA', 'CO2_Land'),
         ('Untouched_Forest_SYD', 'CO2_Land'),
@@ -148,7 +147,7 @@ def group_EMI_YCRAG(df_EMI_YCRAG, df_FLOWC, df_EMI_PROC):
         ('New_Productive_Forest_MID', 'CO2_Land'),
         ('New_Productive_Forest_NOR', 'CO2_Land'),
         # For DAC rows, filter on IPROCTO containing 'CO2_Seq'
-       # ('CO2_DAC_Total', 'CO2')
+        ('CO2_DAC_Total', 'CO2_Seq_50')
     ]
 
     # Function to check if a row in df_FLOWC matches any tuple criteria.
@@ -1563,9 +1562,9 @@ def multi_scenario_eco_proc_histogram_filtered(scenarios,
     - scenarios: List of tuples, each tuple is (scenario_name, scenario_path)
     - plot_title: Title for the overall plot
     """
-    from plotly.subplots import make_subplots
-    import plotly.graph_objects as go
-    import os
+
+    # Filter out the "Base Case" scenario
+    scenarios = [s for s in scenarios if s[0] != "Base Case"]
 
     # Reuse the process name mapping and color mapping from multi_scenario_eco_proc_histogram
     process_name_map = {
@@ -1605,7 +1604,8 @@ def multi_scenario_eco_proc_histogram_filtered(scenarios,
         "C_Rich_Soils_Extraction_HOV",
         "Untouched_Forest_HOV",
         "C_Rich_Soils_Extraction_SJA",
-        "Untouched_Forest_SJA"
+        "Untouched_Forest_SJA",
+        "New_Productive_Forest_SJA"
     }
 
     # Create one subplot per scenario, sharing y-axes.
@@ -1662,8 +1662,8 @@ def multi_scenario_eco_proc_histogram_filtered(scenarios,
         
         # Add a bar trace for each friendly process so that each bar is stacked by process values.
         for friendly_proc, y_vals in friendly_proc_mapping.items():
-            # Only add to the legend if the process is part of the filtered categories
-            if friendly_proc in process_color_map:
+            # Only add to the legend if the process has non-zero values
+            if any(y_vals):
                 show_legend = friendly_proc not in encountered_procs
                 if show_legend:
                     encountered_procs.add(friendly_proc)
@@ -1723,7 +1723,7 @@ def multi_scenario_eco_proc_histogram_filtered(scenarios,
     )
     
     fig.show()
-
+    
 # ------------------------------------------------------------------------------
 # F) Execute plotting functions and save the plots as needed
 # ------------------------------------------------------------------------------
@@ -1930,17 +1930,12 @@ def plot_municipalities(df, shapefile_path, column_municipality, column_value,
 
 # === List of Scenarios ===
 scenario_list = [
-#    ("Base Case", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\Optiflow_MainResults.gdx"),
-#     ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
-#     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
-#     ("Biodiversity+CO2 Fossil Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL\model\Optiflow_MainResults.gdx"),
-    ("Biodiversity+CO2 Fossil -50% Transport Costs", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC-50tc\model\Optiflow_MainResults.gdx"),
+     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case\model\Optiflow_MainResults.gdx"),
+     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
+     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
+     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL\model\Optiflow_MainResults.gdx"),
+    
 
-    ("Biodiversity+CO2 Fossil", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
-    ("Biodiversity+CO2 Fossil +50% Transport Costs", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC+50tc\model\Optiflow_MainResults.gdx"),
-#         ("CO2 Scenario", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
-#         ("CO2 Scenario +150% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+150cost\model\Optiflow_MainResults.gdx"),
-#        ("CO2 Scenario +300% LC", r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\CO2_Case_RLC+300cost\model\Optiflow_MainResults.gdx"),
 ]
 
 # === List of Filters to Apply ===
@@ -1970,16 +1965,16 @@ plot_filters = [
 
     #  ([("Agricultural_Land", "Agriculture")],"Agricultural Land", "Greens"),
     #  ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest", "Oranges"),
-#       ([("CO2_Source_DAC", "CO2_DAC_50"),("CO2_Source_Biogen", "CO2_BIOGEN_TOT"),("CO2_Source_Fossil", "CO2_FOS_TOT")],"Total CO2 Resource[Mton]", "Purples"),
+       ([("CO2_Source_DAC", "CO2_DAC_50"),("CO2_Source_Biogen", "CO2_BIOGEN_TOT"),("CO2_Source_Fossil", "CO2_FOS_TOT")],"Total CO2 Resource[Mton]", "Purples"),
       ([("Air_fuels_sum", "AirBuffer"),
         ("Road_fuels_sum", "RoadBuffer"),
         ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production", "Reds"),
 
-        ([("BioJet_Eff", "Air_fuels_sum"),("BioGasoline_Eff", "Road_fuels_sum"),],"Biofuels Fuel Production", "Reds"),
+
 
  ]
 
-shapefile_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
+shapefile_path = r"C:\Users\sigur\OneDrive\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
 
 # === Main Loop Over Each Filter ===
 for filter_pairs, plot_title, cmap in plot_filters:
@@ -2058,9 +2053,9 @@ for filter_pairs, plot_title, cmap in plot_filters:
     fig.colorbar(sm, cax=cbar_ax, orientation="vertical").set_label("[Mha]", fontsize=14, family="Arial")
 
     plt.show()
-    plt.savefig('Multiple_Scen_Map.svg')
 
 
+#%%
 # --- Highlight Function (Unchanged) ---
 def highlight_municipalities_on_map(shapefile_path, highlight_list, title, highlight_color="green"):
     """
@@ -2103,7 +2098,7 @@ def highlight_municipalities_on_map(shapefile_path, highlight_list, title, highl
     plt.show()
 
 # --- Paths & Data ---
-shapefile_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
+shapefile_path = r"C:\Users\sigur\OneDrive\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
 
 # 1) Municipalities Where Renewable Fuel Production Can Take Place
 highlighted_municipalities_fuels = [
@@ -2140,11 +2135,6 @@ highlight_municipalities_on_map(
     highlight_color="grey"  # change to any color you prefer
 )
 
-import geopandas as gpd
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.colors as mcolors
-import numpy as np
 
 # Example capacities [MTPA] for selected municipalities
 # Replace with your real data.
@@ -2160,7 +2150,7 @@ capacity_data = {
 df_capacity = pd.DataFrame(list(capacity_data.items()), columns=["LAU_NAME", "Capacity"])
 
 # Path to your Danish municipalities shapefile
-shapefile_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
+shapefile_path = r"C:\Users\sigur\OneDrive\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
 
 # Load the municipality shapefile
 gdf = gpd.read_file(shapefile_path)
@@ -2341,7 +2331,7 @@ region_land_costs_k_eur_ha = {
 }
 
 # --- 3) Load the municipality shapefile ---
-shapefile_path = r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
+shapefile_path = r"C:\Users\sigur\OneDrive\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
 gdf = gpd.read_file(shapefile_path)
 
 # The column in your shapefile that holds the municipality name
