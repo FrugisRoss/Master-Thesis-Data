@@ -25,10 +25,10 @@ import plotly.graph_objects as go
 # Each scenario is a tuple: (scenario_name, scenario_path)
 # ------------------------------------------------------------------------------
 scenario_list = [
-     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_Biosto\model"),
-     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_Biosto\model"),
-     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_Biosto\model"),
-     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL_Biosto\model"),
+     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK\model"),
+     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_DK\model"),
+     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_DK\model"),
+     #("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL\model"),
     
 
 ]
@@ -69,7 +69,8 @@ def Import_OptiflowMR(file_path):
     df_FLOWC = pd.DataFrame(df["VFLOW_Opti_C"].records)
     df_EMI_YCRAG = pd.DataFrame(df["EMI_YCRAG"].records)
     df_EMI_PROC = pd.DataFrame(df["EMI_PROC"].records)
-    return df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC
+    df_VOBJ = pd.DataFrame(df["VOBJ"].records)
+    return df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC, df_VOBJ
 
 def Import_BalmorelMR(file_path):
     df = gt.Container(file_path)
@@ -261,7 +262,7 @@ def multi_scenario_fuel_supply(
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
         # Unpack all four returned values
-        df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
+        df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC, df_VOBJ = Import_OptiflowMR(optiflow_path)
         df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR = Import_BalmorelMR(main_results_path) 
 
         # Filter by year
@@ -436,7 +437,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
         main_results_path = os.path.join(scenario_path, "MainResults.gdx")
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
-        df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
+        df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC, df_VOBJ = Import_OptiflowMR(optiflow_path)
         df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR   = Import_BalmorelMR(main_results_path)
 
         df_agg = group_EMI_YCRAG(df_EMI_opt, df_FLOWC, df_EMI_PROC)
@@ -569,7 +570,7 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         main_results_path = os.path.join(scenario_path, "MainResults.gdx")
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
-        df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC = Import_OptiflowMR(optiflow_path)
+        df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC, df_VOBJ = Import_OptiflowMR(optiflow_path)
         df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR  = Import_BalmorelMR(main_results_path)
 
         df_flowc_filtered, df_f_cons_filtered = process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA)
@@ -1310,7 +1311,7 @@ def multi_scenario_objective_histogram_simple(scenario_list, country, plot_title
 
         # Y-axis only on first plot
         fig.update_yaxes(
-            title_text='Objective Value' if idx == 0 else '',
+            title_text='M€' if idx == 0 else '',
             showgrid=True,
             gridcolor='lightgray',
             zeroline=True,
@@ -1341,9 +1342,7 @@ def stacked_objective_by_subcategory(scenario_list, country, plot_title="Stacked
     - country: Country to filter by (set to 'all' to skip filtering)
     - plot_title: Title of the plot
     """
-    import os
-    import pandas as pd
-    import plotly.graph_objects as go
+
 
     # Dictionary to hold data: {scenario_name: {subcategory: value}}
     scenario_data = {}
@@ -1399,13 +1398,72 @@ def stacked_objective_by_subcategory(scenario_list, country, plot_title="Stacked
         paper_bgcolor='white',
         plot_bgcolor='white',
         xaxis_title='Scenario',
-        yaxis_title='Objective Value',
+        yaxis_title='M€',
         margin=dict(l=50, r=20, t=80, b=60)
     )
 
     fig.show()
 
-   
+
+def multi_scenario_objective(scenario_list,  plot_title="Objective Function Value"):
+    """
+    Plots the contenent of VOBJ from Optiflow_MainResults.gdx for each scenario.
+    
+    """
+
+
+    # Dictionary to hold data: {scenario_name: {subcategory: value}}
+    scenario_data = {}
+
+
+
+    for scenario_name, scenario_folder in scenario_list:
+        # Path to data
+        main_results_path = os.path.join(scenario_folder, "Optiflow_MainResults.gdx")
+        if not os.path.exists(main_results_path):
+            raise FileNotFoundError(f"Optiflow_MainResults.gdx not found in folder: {scenario_folder}")
+
+        # Load data
+        df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC, df_VOBJ = Import_OptiflowMR(main_results_path)
+
+        # Check if required columns exist
+        if not {'level'}.issubset(df_VOBJ.columns):
+            raise KeyError("Expected column 'Level' not found in df_VOBJ.")
+
+        # Extract the value for the scenario
+        total_value = df_VOBJ['level'].sum()
+
+        # Store the total value for the scenario
+        scenario_data[scenario_name] = total_value
+
+    # Create a bar plot
+    fig = go.Figure()
+
+    # Add a bar for each scenario
+    for scenario_name, value in scenario_data.items():
+        fig.add_trace(
+            go.Bar(
+                x=[scenario_name],
+                y=[value],
+                name=scenario_name,
+                marker_color='steelblue'
+            )
+        )
+
+    # Final layout
+    fig.update_layout(
+    title=plot_title,
+    xaxis_title='Scenario',
+    yaxis_title='M€',
+    font=dict(size=14),
+    paper_bgcolor='white',
+    plot_bgcolor='white',
+    margin=dict(l=50, r=20, t=80, b=60)
+    )
+
+    fig.show()
+
+       
 # ------------------------------------------------------------------------------
 # F) Execute plotting functions and save the plots as needed
 # ------------------------------------------------------------------------------
@@ -1430,7 +1488,7 @@ multi_scenario_biomass_consumption(
 
 multi_scenario_gcap_histogram(
     scenario_list,
-    country='all',
+    country='DENMARK',
     plot_title="Total Installed Capacity by Scenario"
 )
 
@@ -1453,9 +1511,11 @@ multi_scenario_objective_histogram_simple(
         plot_title="Objective Breakdown by Scenario")
 
 stacked_objective_by_subcategory(scenario_list, 
-                                 country='all', 
+                                 country='DENMARK', 
                                  plot_title="Stacked Objective Breakdown by Scenario")
 
+multi_scenario_objective(scenario_list, 
+                         plot_title="Objective Function Value")
 #%%
 
 # Set a system font to avoid missing font warnings
