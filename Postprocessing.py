@@ -1162,10 +1162,12 @@ def multi_scenario_impexp_histogram(scenarios, country, plot_title="Energy Impor
                     mode='markers',
                     marker=dict(symbol='line-ew-open', size=20, color='red'),
                     name='Net Exports',
-                    showlegend=not net_export_shown,
-                    legendgroup='netexports'
+                    showlegend=False if net_export_shown else True,
+                    legendgroup='netexports',
+                    legendrank=1
                 ),
-                row=1, col=idx + 1
+                row=1, col=idx + 1,
+                
             )
             net_export_shown = True
 
@@ -1194,6 +1196,7 @@ def multi_scenario_impexp_histogram(scenarios, country, plot_title="Energy Impor
             row=1, col=idx + 1
         )
 
+    # Move 'Net Exports' to the end of the legend
     fig.update_layout(
         title=plot_title,
         barmode='relative',
@@ -1205,7 +1208,8 @@ def multi_scenario_impexp_histogram(scenarios, country, plot_title="Energy Impor
             bordercolor='black',
             borderwidth=1,
             font=dict(size=12),
-            groupclick="toggleitem"
+            groupclick="toggleitem",
+            traceorder="reversed"  # Ensures 'Net Exports' appears last
         ),
         margin=dict(l=50, r=20, t=80, b=60)
     )
