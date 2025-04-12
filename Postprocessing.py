@@ -25,11 +25,11 @@ import plotly.graph_objects as go
 # Each scenario is a tuple: (scenario_name, scenario_path)
 # ------------------------------------------------------------------------------
 scenario_list = [
-     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case\model"),
+     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_ModOut\model"),
      ("Base Case DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK_ModOut\model"),
-     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model"),
+     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_ModOut\model"),
      ("CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_DK_ModOut\model"),
-     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC\model"),
+     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_ModOut\model"),
      
      
      ("Biodiversity+CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_DK_ModOut\model"),     
@@ -85,7 +85,13 @@ def Import_BalmorelMR(file_path):
     df_G_CAP_YCRAF = pd.DataFrame(df["G_CAP_YCRAF"].records)
     df_PRO_YCRAGF = pd.DataFrame(df["PRO_YCRAGF"].records)
     df_OBJ_YCR = pd.DataFrame(df["OBJ_YCR"].records)
-    return df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR
+    df_EL_DEMAND_YCR = pd.DataFrame(df["EL_DEMAND_YCR"].records)
+    df_H2_DEMAND_YCR = pd.DataFrame(df["H2_DEMAND_YCR"].records)
+    df_H_DEMAND_YCRA = pd.DataFrame(df["H_DEMAND_YCRA"].records)
+    df_X_FLOW_YCR = pd.DataFrame(df["X_FLOW_YCR"].records)
+    df_XH2_FLOW_YCR = pd.DataFrame(df["XH2_FLOW_YCR"].records)
+    df_XH_FLOW_YCA = pd.DataFrame(df["XH_FLOW_YCA"].records)
+    return df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA
 
 # ------------------------------------------------------------------------------
 # C) DATA-PROCESSING FUNCTIONS
@@ -268,7 +274,7 @@ def multi_scenario_fuel_supply(
 
         # Unpack all four returned values
         df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC, df_VOBJ = Import_OptiflowMR(optiflow_path)
-        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR = Import_BalmorelMR(main_results_path) 
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA = Import_BalmorelMR(main_results_path) 
 
         # Filter by year
         df_FLOWC = df_FLOWC[df_FLOWC['Y'] == str(year)]
@@ -443,7 +449,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
         df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC, df_VOBJ = Import_OptiflowMR(optiflow_path)
-        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR   = Import_BalmorelMR(main_results_path)
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA  = Import_BalmorelMR(main_results_path)
 
         df_agg = group_EMI_YCRAG(df_EMI_opt, df_FLOWC, df_EMI_PROC)
 
@@ -576,7 +582,7 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         optiflow_path     = os.path.join(scenario_path, "Optiflow_MainResults.gdx")
 
         df_FLOWA, df_FLOWC, df_EMI_opt, df_EMI_PROC, df_VOBJ = Import_OptiflowMR(optiflow_path)
-        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR  = Import_BalmorelMR(main_results_path)
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA = Import_BalmorelMR(main_results_path)
 
         df_flowc_filtered, df_f_cons_filtered = process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA)
 
@@ -790,7 +796,7 @@ def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="In
     for idx, (scenario_name, scenario_path) in enumerate(scenarios):
         main_results_path = os.path.join(scenario_path, "MainResults.gdx")
         # Load Balmorel results.
-        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR= Import_BalmorelMR(main_results_path)
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA = Import_BalmorelMR(main_results_path)
 
         if country != 'all':
             df_G_CAP_YCRAF = df_G_CAP_YCRAF[df_G_CAP_YCRAF['C'] == country]
@@ -914,28 +920,26 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
         "FUELCELL": "Fuel Cell",
         "STEAMREFORMING": "Steam Reforming",
     }
+
     tech_color_map = {
-        "CHP Back-Pressure": "#8B4513",         # brown
-        "Electric to Heat": "#d62728",           # red
+        "CHP Back-Pressure": "#8B4513",
+        "Electric to Heat": "#d62728",
         "Interseasonal Heat Storage": "#2ca02c",
         "Intraseasonal Heat Storage": "#d62728",
-        "Solar PV": "#ffeb3b",                   # yellow
-        "Hydro Run-of-River": "#005f73",         # dark-blue/teal
-        "Wind Onshore": "#87CEFA",               # light blue
-        "Wind Offshore": "#ADD8E6",              # light blue
-        "Electrolyzer": "#32CD32",               # lighter, vivid green
+        "Solar PV": "#ffeb3b",
+        "Hydro Run-of-River": "#005f73",
+        "Wind Onshore": "#87CEFA",
+        "Wind Offshore": "#ADD8E6",
+        "Electrolyzer": "#32CD32",
         "H2 Storage": "#17becf",
-        "Boilers": "#FFA500",                    # orange
-        "CHP Extraction": "#556B2F",             # dark olive green
+        "Boilers": "#FFA500",
+        "CHP Extraction": "#556B2F",
         "Intraseasonal Electro Storage": "#98df8a",
-        "Hydro Reservoirs": "#003f5c",           # dark blue
+        "Hydro Reservoirs": "#003f5c",
         "Condensing": "#c5b0d5",
         "Fuel Cell": "#c49c94",
         "Steam Reforming": "#f7b6d2"
     }
-
-    color_palette = px.colors.qualitative.Plotly
-    color_index = {}
 
     fig = make_subplots(
         rows=1,
@@ -948,14 +952,18 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
 
     for idx, (scenario_name, scenario_path) in enumerate(scenarios):
         main_results_path = os.path.join(scenario_path, "MainResults.gdx")
-        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR = Import_BalmorelMR(main_results_path)
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA = Import_BalmorelMR(main_results_path)
 
         if country != 'all':
             df_PRO_YCRAGF = df_PRO_YCRAGF[df_PRO_YCRAGF['C'] == country]
+
         if 'TECH_TYPE' in df_PRO_YCRAGF.columns:
             df_PRO_YCRAGF = df_PRO_YCRAGF[~df_PRO_YCRAGF['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)]
 
+        # Group and filter
         grouped = df_PRO_YCRAGF.groupby(['COMMODITY', 'TECH_TYPE'], as_index=False)['value'].sum()
+        grouped = grouped[grouped['value'] >= threshold_pro]
+
         commodities = grouped['COMMODITY'].unique().tolist()
         tech_list = grouped['TECH_TYPE'].unique().tolist()
 
@@ -996,6 +1004,7 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
                 row=1, col=idx+1
             )
 
+        # X-axis
         fig.update_xaxes(
             title_text='COMMODITY',
             showline=True,
@@ -1005,6 +1014,8 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
             showgrid=False,
             row=1, col=idx+1
         )
+
+        # Y-axis
         y_title = '[TWh]' if idx == 0 else ''
         fig.update_yaxes(
             title_text=y_title,
@@ -1035,9 +1046,172 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
         ),
         margin=dict(l=50, r=20, t=80, b=60)
     )
+
     fig.show()
 
+def multi_scenario_impexp_histogram(scenarios, country, plot_title="Energy Imports and Exports by Scenario"):
 
+    threshold = 1e-8
+
+    market_areas = {
+        'ALBANIA': ['AL'], 'AUSTRIA': ['AT'], 'BELGIUM': ['BE'], 'BOSNIA_AND_HERZEGOVINA': ['BA'],
+        'BULGARIA': ['BG'], 'CROATIA': ['HR'], 'CYPRUS': ['CY'], 'CZECH_REPUBLIC': ['CZ'],
+        'DENMARK': ['DK1', 'DK2'], 'ESTONIA': ['EE'], 'FINLAND': ['FIN'], 'FRANCE': ['FR'],
+        'GERMANY': ['DE4-E', 'DE4-N', 'DE4-S', 'DE4-W'], 'GREECE': ['GR'], 'HUNGARY': ['HU'],
+        'IRELAND': ['IE'], 'ITALY': ['IT'], 'LATVIA': ['LV'], 'LITHUANIA': ['LT'],
+        'LUXEMBOURG': ['LU'], 'MALTA': ['MT'], 'MONTENEGRO': ['ME'], 'NETHERLANDS': ['NL'],
+        'NORTH_MACEDONIA': ['MK'], 'NORWAY': ['NO1', 'NO2', 'NO3', 'NO4', 'NO5'],
+        'POLAND': ['PL'], 'PORTUGAL': ['PT'], 'ROMANIA': ['RO'], 'SERBIA': ['RS'],
+        'SLOVAKIA': ['SK'], 'SLOVENIA': ['SI'], 'SPAIN': ['ES'],
+        'SWEDEN': ['SE1', 'SE2', 'SE3', 'SE4'], 'SWITZERLAND': ['CH'], 'TURKEY': ['TR'], 'UNITED_KINGDOM': ['UK']
+    }
+
+    color_map = {
+        'ELECTRICITY Import': '#4C78A8',
+        'HYDROGEN Import': '#F58518',
+        'ELECTRICITY Export': '#72B7B2',
+        'HYDROGEN Export': '#FFB000'
+    }
+
+    valid_scenarios = []
+    scenario_data = []
+    net_export_shown = False
+
+    market_area_list = market_areas.get(country, [])
+
+    for scenario_name, scenario_path in scenarios:
+        main_results_path = os.path.join(scenario_path, "MainResults.gdx")
+        _, _, _, _, _, _, _, _, _, df_X_FLOW_YCR, df_XH2_FLOW_YCR, _ = Import_BalmorelMR(main_results_path)
+
+        if (df_X_FLOW_YCR is None or df_X_FLOW_YCR.empty) and (df_XH2_FLOW_YCR is None or df_XH2_FLOW_YCR.empty):
+            continue
+
+        total_val = 0
+        for com, df in {'ELECTRICITY': df_X_FLOW_YCR, 'HYDROGEN': df_XH2_FLOW_YCR}.items():
+            if df is None or df.empty:
+                continue
+            imports = df[(df['C'] != country) & (df['IRRRI'].isin(market_area_list))]
+            exports = df[(df['C'] == country) & (~df['IRRRI'].isin(market_area_list))]
+            total_val += abs(imports['value'].sum()) + abs(exports['value'].sum())
+
+        if total_val > threshold:
+            valid_scenarios.append((scenario_name, scenario_path))
+            scenario_data.append((df_X_FLOW_YCR, df_XH2_FLOW_YCR))
+
+    if not valid_scenarios:
+        print("No scenarios have significant import/export values.")
+        return
+
+    fig = make_subplots(
+        rows=1,
+        cols=len(valid_scenarios),
+        shared_yaxes=True,
+        subplot_titles=[s[0] for s in valid_scenarios]
+    )
+
+    for idx, ((scenario_name, _), (df_X_FLOW_YCR, df_XH2_FLOW_YCR)) in enumerate(zip(valid_scenarios, scenario_data)):
+        flow_data = {
+            'HYDROGEN': df_XH2_FLOW_YCR,
+            'ELECTRICITY': df_X_FLOW_YCR
+        }
+
+        for com in ['HYDROGEN', 'ELECTRICITY']:
+            df = flow_data[com]
+            if df is None or df.empty:
+                continue
+
+            imports = df[(df['C'] != country) & (df['IRRRI'].isin(market_area_list))]
+            exports = df[(df['C'] == country) & (~df['IRRRI'].isin(market_area_list))]
+
+            import_val = imports['value'].sum()
+            export_val = exports['value'].sum()
+
+            if abs(import_val) <= threshold and abs(export_val) <= threshold:
+                continue
+
+            if abs(import_val) > threshold:
+                fig.add_trace(
+                    go.Bar(
+                        x=[com],
+                        y=[-import_val],
+                        name=f'{com} Import',
+                        marker_color=color_map.get(f'{com} Import', '#888888'),
+                        showlegend=(idx == 0)
+                    ),
+                    row=1, col=idx + 1
+                )
+
+            if abs(export_val) > threshold:
+                fig.add_trace(
+                    go.Bar(
+                        x=[com],
+                        y=[export_val],
+                        name=f'{com} Export',
+                        marker_color=color_map.get(f'{com} Export', '#bbbbbb'),
+                        showlegend=(idx == 0)
+                    ),
+                    row=1, col=idx + 1
+                )
+
+            # Net Export marker (horizontal line style marker)
+            net_export = export_val - import_val
+            fig.add_trace(
+                go.Scatter(
+                    x=[com],
+                    y=[net_export],
+                    mode='markers',
+                    marker=dict(symbol='line-ew-open', size=20, color='red'),
+                    name='Net Exports',
+                    showlegend=not net_export_shown,
+                    legendgroup='netexports'
+                ),
+                row=1, col=idx + 1
+            )
+            net_export_shown = True
+
+        fig.update_xaxes(
+            title_text='COMMODITY',
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=False,
+            row=1, col=idx + 1
+        )
+
+        fig.update_yaxes(
+            title_text='[TWh]' if idx == 0 else '',
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.6,
+            zeroline=True,
+            zerolinewidth=0.6,
+            zerolinecolor='lightgray',
+            row=1, col=idx + 1
+        )
+
+    fig.update_layout(
+        title=plot_title,
+        barmode='relative',
+        font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        legend=dict(
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1,
+            font=dict(size=12),
+            groupclick="toggleitem"
+        ),
+        margin=dict(l=50, r=20, t=80, b=60)
+    )
+
+    fig.show()
+    
 def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Production Fuel Share Histogram"):
     """
     For each scenario in scenario_list, this function plots a histogram where each column corresponds to a 
@@ -1140,7 +1314,7 @@ def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Prod
             raise FileNotFoundError(f"MainResults.gdx not found in folder: {scenario_folder}")
         
         # Import data (assuming Import_BalmorelMR returns a tuple where the 5th element is df_PRO_YCRAGF).
-        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR = Import_BalmorelMR(main_results_path)
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA = Import_BalmorelMR(main_results_path)
 
         if country != 'all':
             df_PRO_YCRAGF = df_PRO_YCRAGF[df_PRO_YCRAGF['C'] == country]
@@ -1277,7 +1451,7 @@ def multi_scenario_objective_histogram_simple(scenario_list, country, plot_title
             raise FileNotFoundError(f"MainResults.gdx not found in folder: {scenario_folder}")
         
         # Load data (adjust index as needed for your Import_BalmorelMR)
-        _, _, _, _, _, df_OBJ_YCR = Import_BalmorelMR(main_results_path)
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA = Import_BalmorelMR(main_results_path)
 
         # Filter by country
         if country != 'all':
@@ -1361,7 +1535,7 @@ def stacked_objective_by_subcategory(scenario_list, country, plot_title="Stacked
             raise FileNotFoundError(f"MainResults.gdx not found in folder: {scenario_folder}")
 
         # Load data
-        _, _, _, _, _, df_OBJ_YCR = Import_BalmorelMR(main_results_path)
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA = Import_BalmorelMR(main_results_path)
 
         # Filter by country
         if country != 'all':
@@ -1503,6 +1677,9 @@ multi_scenario_pro_histogram(
     plot_title="Production by Scenario (in Balmorel)"
 )
 
+multi_scenario_impexp_histogram(scenario_list,
+                                country='DENMARK', 
+                                plot_title="Imports and Exports by Scenario")
 
 multi_scenario_fuel_share_histogram(
     scenario_list,
@@ -1516,7 +1693,7 @@ multi_scenario_objective_histogram_simple(
         plot_title="Objective Breakdown by Scenario")
 
 stacked_objective_by_subcategory(scenario_list, 
-                                 country='DENMARK', 
+                                 country='all', 
                                  plot_title="Stacked Objective Breakdown by Scenario")
 
 multi_scenario_objective(scenario_list, 

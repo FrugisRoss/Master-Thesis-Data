@@ -18,7 +18,7 @@ import gams
 
 ws = gams.GamsWorkspace()
 
-res = MainResults(files='MainResults.gdx', paths=  r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Biodiversity_Case_RLC_FOSSIL+50NG\model", scenario_names=['+50 NG'])
+res = MainResults(files='MainResults.gdx', paths=  r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK_ModOut\model", scenario_names=['Base'])
 
 df = res.get_result('PRO_YCRAGF')
 print(df)
@@ -26,6 +26,6 @@ print(df)
 
 
 #%%ng
-fig, ax = res.plot_profile(scenario='+50 NG', region='Denmark', year=2050,commodity='electricity')
+fig, ax = res.plot_profile(scenario='Base', year=2050,commodity='electricity')
                  
 # %%
