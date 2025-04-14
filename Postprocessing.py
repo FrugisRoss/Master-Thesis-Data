@@ -1125,6 +1125,10 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
     fig.show()
 
 def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_title="Energy Imports and Exports by Scenario"):
+    import os
+    import math
+    import plotly.graph_objects as go
+    from plotly.subplots import make_subplots
 
     threshold = 1e-8
 
@@ -1141,24 +1145,17 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
         'SWEDEN': ['SE1', 'SE2', 'SE3', 'SE4'], 'SWITZERLAND': ['CH'], 'TURKEY': ['TR'], 'UNITED_KINGDOM': ['UK']
     }
 
+    # One color per direction
     color_map = {
-        'ELECTRICITY Import': '#4C78A8',
-        'HYDROGEN Import': '#F58518',
-        'ELECTRICITY Export': '#72B7B2',
-        'HYDROGEN Export': '#FFB000'
+        'Import': '#4C78A8',
+        'Export': '#ebde34'
     }
-    
-    name_map = {
-    'ELECTRICITY Import': 'Electricity Import',
-    'HYDROGEN Import': 'Hydrogen Import',
-    'ELECTRICITY Export': 'Electricity Export',
-    'HYDROGEN Export': 'Hydrogen Export'
-    }
-
 
     valid_scenarios = []
     scenario_data = []
     net_export_shown = False
+    imp_shown=False
+    exp_shown=False
 
     market_area_list = market_areas.get(country, [])
 
@@ -1209,48 +1206,51 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
             import_val = imports['value'].sum()
             export_val = exports['value'].sum()
 
-            # Using the name_map for the legend entry
+            # Plot Import (negative)
             if abs(import_val) > threshold:
                 fig.add_trace(
                     go.Bar(
                         x=[com],
                         y=[-import_val],
-                        name=name_map.get(f'{com} Import', f'{com} Import'),
-                        marker_color=color_map.get(f'{com} Import', '#888888'),
-                        showlegend=(idx == 0)
+                        name='Imports',
+                        marker_color=color_map['Import'],
+                        showlegend=False if imp_shown else True,
                     ),
                     row=1, col=idx + 1
                 )
+            imp_shown = True
 
+            # Plot Export (positive)
             if abs(export_val) > threshold:
                 fig.add_trace(
                     go.Bar(
                         x=[com],
                         y=[export_val],
-                        name=name_map.get(f'{com} Export', f'{com} Export'),
-                        marker_color=color_map.get(f'{com} Export', '#bbbbbb'),
-                        showlegend=(idx == 0)
+                        name='Exports',
+                        marker_color=color_map['Export'],
+                        showlegend=False if exp_shown else True,
+                        
                     ),
                     row=1, col=idx + 1
                 )
+            exp_shown = True
 
-            # Net Export marker (horizontal line style marker)
+            # Net export marker
             net_export = export_val - import_val
             fig.add_trace(
-            go.Scatter(
-                x=[com],
-                y=[net_export],
-                mode='markers',
-                marker=dict(symbol='line-ew-open', size=marker_length, color='red', line=dict(width=3)),
-                name='Net Exports',
-                showlegend=False if net_export_shown else True,
-                legendgroup='netexports',
-                legendrank=1
-            ),
-            row=1, col=idx + 1,
+                go.Scatter(
+                    x=[com],
+                    y=[net_export],
+                    mode='markers',
+                    marker=dict(symbol='line-ew-open', size=marker_length, color='red', line=dict(width=3)),
+                    name='Net Exports',
+                    showlegend=False if net_export_shown else True,
+                    legendgroup='netexports',
+                    legendrank=1
+                ),
+                row=1, col=idx + 1
             )
             net_export_shown = True
-        
 
         fig.update_xaxes(
             title_text='COMMODITY',
@@ -1261,38 +1261,36 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
             showgrid=False,
             row=1, col=idx + 1
         )
-        # Set dynamic max value based on import/export magnitude across all scenarios
-        y_max = 0
-        for (df_X_FLOW_YCR, df_XH2_FLOW_YCR) in scenario_data:
-            for com_df in [df_X_FLOW_YCR, df_XH2_FLOW_YCR]:
-                if com_df is not None and not com_df.empty:
-                    y_max = max(y_max, abs(com_df['value'].sum()))
 
-        # Round up to next multiple of 25 for neat tick marks
-        import math
-        y_limit = math.ceil(y_max / 25) * 25
-        tickvals = list(range(-y_limit, y_limit + 1, 25))
-        ticktext = [str(abs(val)) for val in tickvals]  # Show all ticks as positive
+    # Determine max y-axis value for neat tick marks
+    y_max = 0
+    for (df_X_FLOW_YCR, df_XH2_FLOW_YCR) in scenario_data:
+        for com_df in [df_X_FLOW_YCR, df_XH2_FLOW_YCR]:
+            if com_df is not None and not com_df.empty:
+                y_max = max(y_max, abs(com_df['value'].sum()))
 
-        for idx in range(len(valid_scenarios)):
-            fig.update_yaxes(
-                title_text='[TWh]' if idx == 0 else '',
-                showline=True,
-                mirror=True,
-                linewidth=1,
-                linecolor='black',
-                showgrid=True,
-                gridcolor='lightgray',
-                gridwidth=0.6,
-                zeroline=True,
-                zerolinewidth=0.6,
-                zerolinecolor='lightgray',
-                tickvals=tickvals,
-                ticktext=ticktext,
-                row=1, col=idx + 1
-            )
+    y_limit = math.ceil(y_max / 25) * 25
+    tickvals = list(range(-y_limit, y_limit + 1, 25))
+    ticktext = [str(abs(val)) for val in tickvals]  # Always positive labels
 
-    # Move 'Net Exports' to the end of the legend
+    for idx in range(len(valid_scenarios)):
+        fig.update_yaxes(
+            title_text='[TWh]' if idx == 0 else '',
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.6,
+            zeroline=True,
+            zerolinewidth=0.6,
+            zerolinecolor='lightgray',
+            tickvals=tickvals,
+            ticktext=ticktext,
+            row=1, col=idx + 1
+        )
+
     fig.update_layout(
         title=plot_title,
         barmode='relative',
@@ -1305,12 +1303,13 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
             borderwidth=1,
             font=dict(size=12),
             groupclick="toggleitem",
-            traceorder="reversed"  # Ensures 'Net Exports' appears last
+            traceorder="reversed"
         ),
         margin=dict(l=50, r=20, t=80, b=60)
     )
 
     fig.show()
+
     
 def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Production Fuel Share Histogram"):
     """
