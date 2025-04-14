@@ -898,6 +898,7 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
     Only values higher than 10e-9 (i.e. ≥ 1e-8) are plotted.
     """
 
+    demand_shown = False
     # Set threshold for PRO_YCRAGF histogram: only values >= 10e-9 (i.e. 1e-8) are plotted.
     threshold_pro = 1e-8
 
@@ -924,8 +925,8 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
     tech_color_map = {
         "CHP Back-Pressure": "#8B4513",
         "Electric to Heat": "#d62728",
-        "Interseasonal Heat Storage": "#2ca02c",
-        "Intraseasonal Heat Storage": "#d62728",
+        "Interseasonal Heat Storage": "#ba55d3",
+        "Intraseasonal Heat Storage": "#c8a2c8",
         "Solar PV": "#ffeb3b",
         "Hydro Run-of-River": "#005f73",
         "Wind Onshore": "#87CEFA",
@@ -958,8 +959,15 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
             df_PRO_YCRAGF = df_PRO_YCRAGF[df_PRO_YCRAGF['C'] == country]
 
         if 'TECH_TYPE' in df_PRO_YCRAGF.columns:
-            df_PRO_YCRAGF = df_PRO_YCRAGF[~df_PRO_YCRAGF['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)]
+            # Keep HEAT rows as-is (including STORAGE)
+            df_heat = df_PRO_YCRAGF[df_PRO_YCRAGF['COMMODITY'] == 'HEAT']
 
+            # For other commodities, exclude STORAGE tech types
+            df_other = df_PRO_YCRAGF[df_PRO_YCRAGF['COMMODITY'] != 'HEAT']
+            df_other = df_other[~df_other['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)]
+
+            # Concatenate back
+            df_PRO_YCRAGF = pd.concat([df_heat, df_other], ignore_index=True)
         # Group and filter
         grouped = df_PRO_YCRAGF.groupby(['COMMODITY', 'TECH_TYPE'], as_index=False)['value'].sum()
         grouped = grouped[grouped['value'] >= threshold_pro]
@@ -1003,6 +1011,52 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
                 ),
                 row=1, col=idx+1
             )
+        
+        # Add domestic demand marker per COMMODITY
+        demand_sources = {
+            "ELECTRICITY": df_EL_DEMAND_YCR,
+            "HEAT": df_H_DEMAND_YCRA,
+            "HYDROGEN": df_H2_DEMAND_YCR
+        }
+
+        for com in commodities:
+            demand_df = demand_sources.get(com)
+            if demand_df is None or demand_df.empty:
+                continue
+
+            # Filter and sum demand
+            if 'C' in demand_df.columns:
+                demand_value = demand_df[demand_df['C'] == country]['value'].sum()
+            else:
+                demand_value = 0
+
+            if demand_value < threshold_pro:
+                continue
+
+            fig.add_trace(
+                go.Scatter(
+                    x=[com],
+                    y=[demand_value],
+                    mode='markers',
+                    name="Domestic Demand",
+                    marker=dict(
+                        symbol='line-ew-open',
+                        size=35,
+                        color='red',
+                        line=dict(width=3)
+                    ),
+                    showlegend=False if demand_shown else True,
+                    legendgroup='domesticdemand',
+                    legendrank=1
+                ),
+                row=1, col=idx + 1
+                
+            )
+            demand_shown = True
+            
+
+        
+
 
         # X-axis
         fig.update_xaxes(
@@ -1039,17 +1093,18 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
         paper_bgcolor='white',
         plot_bgcolor='white',
         legend=dict(
-            bgcolor='white',
-            bordercolor='black',
-            borderwidth=1,
-            font=dict(size=12)
+        bgcolor='white',
+        bordercolor='black',
+        borderwidth=1,
+        font=dict(size=12),
+        traceorder="reversed"
         ),
         margin=dict(l=50, r=20, t=80, b=60)
     )
 
     fig.show()
 
-def multi_scenario_impexp_histogram(scenarios, country, marker_length=100, plot_title="Energy Imports and Exports by Scenario"):
+def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_title="Energy Imports and Exports by Scenario"):
 
     threshold = 1e-8
 
@@ -1704,7 +1759,7 @@ multi_scenario_pro_histogram(
 
 multi_scenario_impexp_histogram(scenario_list,
                                 country='DENMARK', 
-                                marker_length=100,
+                                marker_length=110,
                                 plot_title="Imports and Exports by Scenario")
 
 multi_scenario_fuel_share_histogram(
