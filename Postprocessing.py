@@ -899,6 +899,7 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
     """
 
     demand_shown = False
+    exo_demand_shown=False
     # Set threshold for PRO_YCRAGF histogram: only values >= 10e-9 (i.e. 1e-8) are plotted.
     threshold_pro = 1e-8
 
@@ -1012,7 +1013,7 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
                 row=1, col=idx+1
             )
         
-        # Add domestic demand marker per COMMODITY
+        # Add domestic demand and EXO demand marker per COMMODITY
         demand_sources = {
             "ELECTRICITY": df_EL_DEMAND_YCR,
             "HEAT": df_H_DEMAND_YCRA,
@@ -1024,36 +1025,64 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
             if demand_df is None or demand_df.empty:
                 continue
 
-            # Filter and sum demand
+            
+
+            # Domestic demand (as before)
             if 'C' in demand_df.columns:
                 demand_value = demand_df[demand_df['C'] == country]['value'].sum()
             else:
                 demand_value = 0
 
-            if demand_value < threshold_pro:
-                continue
-
-            fig.add_trace(
-                go.Scatter(
-                    x=[com],
-                    y=[demand_value],
-                    mode='markers',
-                    name="Domestic Demand",
-                    marker=dict(
-                        symbol='line-ew-open',
-                        size=35,
-                        color='red',
-                        line=dict(width=3)
+            if demand_value >= threshold_pro:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[com],
+                        y=[demand_value],
+                        mode='markers',
+                        name="Total Domestic Demand",
+                        marker=dict(
+                            symbol='line-ew-open',
+                            size=35,
+                            color='red',
+                            line=dict(width=3)
+                        ),
+                        showlegend=False if demand_shown else True,
+                        legendgroup='domesticdemand',
+                        legendrank=1
                     ),
-                    showlegend=False if demand_shown else True,
-                    legendgroup='domesticdemand',
-                    legendrank=1
-                ),
-                row=1, col=idx + 1
-                
-            )
-            demand_shown = True
-            
+                    row=1, col=idx + 1
+                )
+                demand_shown = True
+
+            if 'C' in demand_df.columns and 'VARIABLE_CATEGORY' in demand_df.columns:
+                exo_demand = demand_df[
+                    (demand_df['C'] == country) &
+                    (demand_df['VARIABLE_CATEGORY'].astype(str).str.contains('EXO', case=False, na=False))
+                ]['value'].sum()
+            else:
+                exo_demand = 0
+
+            if exo_demand >= threshold_pro:
+                fig.add_trace(
+                    go.Scatter(
+                        x=[com],
+                        y=[exo_demand],
+                        mode='markers',
+                        name="Exogeous Domestic Demand",
+                        marker=dict(
+                            symbol='line-ew-open',
+                            size=35,
+                            color='blue',
+                            line=dict(width=3)
+                        ),
+                        showlegend=False if exo_demand_shown else True,
+                        legendgroup='domesticdemand',
+                        legendrank=2
+                    ),
+                    row=1, col=idx + 1
+                )
+                exo_demand_shown=True
+                    
 
         
 
