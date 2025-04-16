@@ -39,28 +39,28 @@ plot_filters = [
     # ("Agricultural_Land", "C_Rich_Soils_Extraction_SYD"),
     # ("Agricultural_Land", "C_Rich_Soils_Extraction_MID"),
     # ("Agricultural_Land", "C_Rich_Soils_Extraction_NOR")],
-    # "Carbon Rich Soil Extraction", "Oranges"),
+    # "Carbon Rich Soil Extraction", 1e-6, "Oranges", "[Mha]"),
 
     ([("Agricultural_Land", "New_Productive_Forest_HOV"),
     ("Agricultural_Land", "New_Productive_Forest_SJA"),
     ("Agricultural_Land", "New_Productive_Forest_SYD"),
     ("Agricultural_Land", "New_Productive_Forest_MID"),
     ("Agricultural_Land", "New_Productive_Forest_NOR")],
-     "New Productive Forest", "Greens"),
+     "New Productive Forest", 1e-6, "Greens", "[Mha]"),
 
     # ([("Productive_Forest", "Untouched_Forest_HOV"),
     # ("Productive_Forest", "Untouched_Forest_SJA"),
     # ("Productive_Forest", "Untouched_Forest_SYD"),
     # ("Productive_Forest", "Untouched_Forest_MID"),
     # ("Productive_Forest", "Untouched_Forest_NOR")],
-    # "New Protected Forest", "Purples"),
+    # "New Protected Forest",1e-6, "Purples", "[Mha]"),
 
-    #  ([("Agricultural_Land", "Agriculture")],"Agricultural Land", "Greens"),
-    #  ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest", "Oranges"),
-       ([("CO2_Source_DAC", "CO2_DAC_50"),("CO2_Source_Biogen", "CO2_BIOGEN_TOT"),("CO2_Source_Fossil", "CO2_FOS_TOT")],"Total CO2 Resource[Mton]", "Purples"),
+    #  ([("Agricultural_Land", "Agriculture")],"Agricultural Land", "Greens", "[Mha]"),
+    #  ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest", "Oranges", "[Mha]"),
+       ([("CO2_Source_DAC", "CO2_DAC_50"),("CO2_Source_Biogen", "CO2_BIOGEN_TOT"),("CO2_Source_Fossil", "CO2_FOS_TOT")],"Total CO2 Resource",1e-6, "Purples", "[Mton]"),
       ([("Air_fuels_sum", "AirBuffer"),
         ("Road_fuels_sum", "RoadBuffer"),
-        ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production", "Reds"),
+        ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production",1e-10, "Reds", "[PJ]"),
 
 
 
@@ -229,18 +229,18 @@ def plot_municipalities(df, shapefile_path, column_municipality, column_value,
 #    return merged[[column_municipality_gdf, column_value]]  # Return merged data for debugging.
 
 
-def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping, tolerance=1e-3):
+def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping):
     """
     Plots aggregated values from GDX files for each scenario and filter using categorized bins (4 + zero bin).
 
     Parameters:
         scenario_list (list): List of (scenario_name, gdx_file_path) tuples.
-        plot_filters (list): List of filters as (filter_pairs, plot_title, colormap name).
+        plot_filters (list): List of filters as (filter_pairs, plot_title, tolerance, colormap name, unit).
         shapefile_path (str): Path to the shapefile.
         municipality_name_mapping (dict): Mapping from GAMS to shapefile municipality names.
-        tolerance (float): Threshold under which values are considered zero.
+
     """
-    for filter_pairs, plot_title, cmap_name in plot_filters:
+    for filter_pairs, plot_title, tolerance, cmap_name, unit in plot_filters:
         fig, axes = plt.subplots(1, len(scenario_list), figsize=(20, 5))
         if not isinstance(axes, (list, np.ndarray)):
             axes = [axes]
@@ -361,10 +361,10 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
         legend_patches = [Patch(facecolor=color, edgecolor='grey', label=label)
                           for color, label in zip(bin_colors, legend_labels)]
 
-        # 🔧 Legend now sits nicely closer to subplots
+        # Legend now sits nicely closer to subplots
         fig.legend(
             handles=legend_patches,
-            title=plot_title,
+            title=f"{plot_title} {unit}",
             loc='lower center',
             bbox_to_anchor=(0.5, 0.05),  # Raised from -0.015 to 0.05
             ncol=5,
@@ -376,7 +376,7 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
         plt.show()
 
 
-optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping, tolerance=0.01)
+optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping)
 
  #%%
 
