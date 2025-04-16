@@ -353,11 +353,11 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
             )
 
         # Global title
-        fig.text(0.05, 0.95, plot_title, fontsize=16, family="Arial", ha='left', va='top')
+        #fig.text(0.05, 0.95, plot_title, fontsize=16, family="Arial", ha='left', va='top')
 
         # === Custom Legend ===
-        legend_labels = [f"≤ {tolerance:.2g}"]
-        legend_labels += [f"{bin_edges[i]:.2f} – {bin_edges[i + 1]:.2f}" for i in range(4)]
+        legend_labels = ["0"]
+        legend_labels += [f"{bin_edges[i]:.4f} – {bin_edges[i + 1]:.4f}" for i in range(4)]
         legend_patches = [Patch(facecolor=color, edgecolor='grey', label=label)
                           for color, label in zip(bin_colors, legend_labels)]
 
