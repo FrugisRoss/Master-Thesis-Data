@@ -14,8 +14,10 @@ from plotly.subplots import make_subplots
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 import geopandas as gpd
-import matplotlib.pyplot as plt
+
 import plotly.graph_objects as go
+
+from matplotlib.patches import Patch, Rectangle
 
 #%%
 
@@ -227,25 +229,26 @@ def plot_municipalities(df, shapefile_path, column_municipality, column_value,
 #    return merged[[column_municipality_gdf, column_value]]  # Return merged data for debugging.
 
 
-
-def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping):
+def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping, tolerance=1e-3):
     """
-    Plots the sum of the values of multiple (IPROCFROM, IPROCTO) pairs for each scenario on a vector layer of shapefile_path.
+    Plots aggregated values from GDX files for each scenario and filter using categorized bins (4 + zero bin).
 
     Parameters:
         scenario_list (list): List of (scenario_name, gdx_file_path) tuples.
-        plot_filters (list): List of filters to apply, each as (filter_pairs, plot_title, colormap).
-        shapefile_path (str): Path to the shapefile containing Danish municipalities.
-        municipality_name_mapping (dict): Mapping from GAMS names to shapefile names.
+        plot_filters (list): List of filters as (filter_pairs, plot_title, colormap name).
+        shapefile_path (str): Path to the shapefile.
+        municipality_name_mapping (dict): Mapping from GAMS to shapefile municipality names.
+        tolerance (float): Threshold under which values are considered zero.
     """
-    for filter_pairs, plot_title, cmap in plot_filters:
+    for filter_pairs, plot_title, cmap_name in plot_filters:
         fig, axes = plt.subplots(1, len(scenario_list), figsize=(20, 5))
         if not isinstance(axes, (list, np.ndarray)):
             axes = [axes]
 
         df_all_scenarios = pd.DataFrame()
-        global_min, global_max = np.inf, -np.inf
+        combined_values = []
 
+        # === Collect values for binning ===
         for scenario_name, file_path in scenario_list:
             df_FLOWA, *_ = Import_OptiflowMR_geo(file_path)
             df_FLOWA["AAA"] = df_FLOWA["AAA"].astype(str).str.strip().replace(municipality_name_mapping)
@@ -256,58 +259,124 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
                 (row["IPROCFROM"].upper() == pair[0].strip().upper() and
                  row["IPROCTO"].upper().startswith(pair[1].strip().upper()))
                  for pair in filter_pairs), axis=1)
-            filtered_df = df_FLOWA[mask]
 
+            filtered_df = df_FLOWA[mask]
             aggregated_df = filtered_df.groupby("AAA", observed=False)["value"].sum().reset_index()
 
             if not aggregated_df.empty:
-                min_val, max_val = aggregated_df["value"].min(), aggregated_df["value"].max()
-                global_min = min(global_min, min_val)
-                global_max = max(global_max, max_val)
+                combined_values.extend(aggregated_df["value"].tolist())
 
             aggregated_df.rename(columns={"value": scenario_name}, inplace=True)
             df_all_scenarios = pd.merge(df_all_scenarios, aggregated_df, on="AAA", how="outer") if not df_all_scenarios.empty else aggregated_df
 
         df_all_scenarios.fillna(0, inplace=True)
-        print(f"\n📊 Data Table for {plot_title}")
-        pd.set_option('display.max_rows', None)
-        print(df_all_scenarios)
 
-        norm = mcolors.Normalize(vmin=global_min, vmax=global_max)
+        # === Define Bins ===
+        values = np.array(combined_values)
+        values = values[values > tolerance]  # exclude near-zero for binning
 
+        if values.size == 0:
+            bin_edges = [0, 1, 2, 3, 4, 5]  # dummy bins
+        else:
+            bin_min = values.min()
+            bin_max = values.max()
+            bin_edges = np.linspace(bin_min, bin_max, 5)
+
+        # === Setup colormap ===
+        cmap = plt.get_cmap(cmap_name, 4)
+        bin_colors = ['lightgrey'] + [cmap(i) for i in range(4)]
+
+        # === Plotting ===
         for idx, (scenario_name, file_path) in enumerate(scenario_list):
-            print(f"\n🔹 Processing {scenario_name} for {plot_title}")
             df_FLOWA, *_ = Import_OptiflowMR_geo(file_path)
             df_FLOWA["AAA"] = df_FLOWA["AAA"].astype(str).str.strip().replace(municipality_name_mapping)
             df_FLOWA["IPROCFROM"] = df_FLOWA["IPROCFROM"].astype(str).str.strip()
             df_FLOWA["IPROCTO"] = df_FLOWA["IPROCTO"].astype(str).str.strip()
 
-            plot_municipalities(
-                df_FLOWA,
-                shapefile_path,
-                column_municipality="AAA",
-                column_value="value",
-                filter_column_from="IPROCFROM",
-                filter_column_to="IPROCTO",
-                filter_pairs=filter_pairs,
-                cmap=cmap,
-                scenario_name=scenario_name,
-                ax=axes[idx],
-                norm=norm
+            mask = df_FLOWA.apply(lambda row: any(
+                (row["IPROCFROM"].upper() == pair[0].strip().upper() and
+                 row["IPROCTO"].upper().startswith(pair[1].strip().upper()))
+                 for pair in filter_pairs), axis=1)
+
+            filtered_df = df_FLOWA[mask]
+            aggregated_df = filtered_df.groupby("AAA", observed=False)["value"].sum().reset_index()
+            aggregated_df["value"] = aggregated_df["value"].fillna(0)
+
+            # Assign bins
+            def assign_bin(v):
+                if v <= tolerance:
+                    return 0
+                for i in range(4):
+                    if bin_edges[i] <= v < bin_edges[i + 1]:
+                        return i + 1
+                return 4  # edge case: exactly max
+
+            aggregated_df["bin"] = aggregated_df["value"].apply(assign_bin)
+
+            # Merge with shapefile
+            gdf = gpd.read_file(shapefile_path)
+            gdf["LAU_NAME"] = gdf["LAU_NAME"].astype(str).str.strip()
+            merged = gdf.merge(aggregated_df, left_on="LAU_NAME", right_on="AAA", how="left")
+            merged["bin"] = merged["bin"].fillna(0).astype(int)
+
+            # Plot
+            ax = axes[idx]
+            merged.plot(
+                column="bin", ax=ax,
+                cmap=mcolors.ListedColormap(bin_colors),
+                edgecolor="grey", linewidth=0.5, legend=False
             )
 
-        plt.suptitle(plot_title, fontsize=16, family="Arial")
-        plt.tight_layout(rect=[0.1, 0, 1, 0.95])
+            ax.set_aspect('equal')
+            ax.set_axis_off()
 
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array([])
-        cbar_ax = fig.add_axes([0.99, 0.15, 0.02, 0.7])
-        fig.colorbar(sm, cax=cbar_ax, orientation="vertical").set_label("[Mha]", fontsize=14, family="Arial")
+            xlim = ax.get_xlim()
+            ylim = ax.get_ylim()
+            rect = Rectangle(
+                (xlim[0], ylim[0]),
+                xlim[1] - xlim[0],
+                ylim[1] - ylim[0],
+                linewidth=1.5,
+                edgecolor='black',
+                facecolor='none',
+                zorder=10
+            )
+            ax.add_patch(rect)
 
+            # Center scenario name above map
+            ax.set_title(
+                scenario_name,
+                fontsize=12,
+                family="Arial",
+                loc='center',
+                pad=10  # Increase if titles are too close to the map
+            )
+
+        # Global title
+        fig.text(0.05, 0.95, plot_title, fontsize=16, family="Arial", ha='left', va='top')
+
+        # === Custom Legend ===
+        legend_labels = [f"≤ {tolerance:.2g}"]
+        legend_labels += [f"{bin_edges[i]:.2f} – {bin_edges[i + 1]:.2f}" for i in range(4)]
+        legend_patches = [Patch(facecolor=color, edgecolor='grey', label=label)
+                          for color, label in zip(bin_colors, legend_labels)]
+
+        # 🔧 Legend now sits nicely closer to subplots
+        fig.legend(
+            handles=legend_patches,
+            title=plot_title,
+            loc='lower center',
+            bbox_to_anchor=(0.5, 0.05),  # Raised from -0.015 to 0.05
+            ncol=5,
+            fontsize=10,
+            title_fontsize=11
+        )
+
+        plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])  # bottom margin increased for new legend space
         plt.show()
 
-optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping)
 
+optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping, tolerance=0.01)
 
  #%%
 
