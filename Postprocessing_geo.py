@@ -14,10 +14,9 @@ from plotly.subplots import make_subplots
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score
 import geopandas as gpd
-
 import plotly.graph_objects as go
-
 from matplotlib.patches import Patch, Rectangle
+import contextily as ctx
 
 #%%
 
@@ -283,9 +282,8 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
             bin_edges = np.linspace(bin_min, bin_max, 5)
 
         # === Setup colormap ===
-        cmap = plt.get_cmap(cmap_name, 4)
-        bin_colors = ['lightgrey'] + [cmap(i) for i in range(4)]
-
+        cmap = plt.get_cmap(cmap_name)
+        bin_colors = ['white'] + [cmap(x) for x in np.linspace(0.30, 0.95, 4)]
         # === Plotting ===
         for idx, (scenario_name, file_path) in enumerate(scenario_list):
             df_FLOWA, *_ = Import_OptiflowMR_geo(file_path)
@@ -321,15 +319,30 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
 
             # Plot
             ax = axes[idx]
+
+            # Reproject to EPSG:3857 for basemap compatibility
+            merged = merged.to_crs(epsg=3857)
+
+            # Plot the thematic data
             merged.plot(
                 column="bin", ax=ax,
                 cmap=mcolors.ListedColormap(bin_colors),
-                edgecolor="grey", linewidth=0.5, legend=False
+                edgecolor="grey", linewidth=0.5,
+                legend=False
+            )
+
+            # Add OSM basemap
+            ctx.add_basemap(
+                ax, 
+                source=ctx.providers.CartoDB.Positron,  # You can change to other providers
+                crs=merged.crs.to_string(),
+                attribution_size=6
             )
 
             ax.set_aspect('equal')
             ax.set_axis_off()
 
+            # Rectangle frame
             xlim = ax.get_xlim()
             ylim = ax.get_ylim()
             rect = Rectangle(
@@ -343,13 +356,13 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
             )
             ax.add_patch(rect)
 
-            # Center scenario name above map
+            # Title
             ax.set_title(
                 scenario_name,
                 fontsize=12,
                 family="Arial",
                 loc='center',
-                pad=10  # Increase if titles are too close to the map
+                pad=10
             )
 
         # Global title
