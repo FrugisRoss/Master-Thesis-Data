@@ -25,15 +25,15 @@ import plotly.graph_objects as go
 # Each scenario is a tuple: (scenario_name, scenario_path)
 # ------------------------------------------------------------------------------
 scenario_list = [
-     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_ModOut\model"),
-     ("Base Case DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK_ModOut\model"),
-     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_ModOut\model"),
-     ("CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_DK_ModOut\model"),
-     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_ModOut\model"),
+     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model"),
+     #("Base Case DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK_ModOut\model"),
+     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_RightOut\model"),
+     #("CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_DK_ModOut\model"),
+     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_RightOut\model"),
      
      
-     ("Biodiversity+CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_DK_ModOut\model"),     
-     #("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL\model"),
+     #("Biodiversity+CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_DK_ModOut\model"),     
+     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL_RightOut\model"),
     
 
 ]
@@ -902,6 +902,10 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
     demand_shown = False
     exo_demand_shown = False
     threshold_pro = 1e-8
+
+    # Fallback color palette if a tech is not in tech_color_map.
+    color_palette = px.colors.qualitative.Plotly
+    color_index = {}
 
     tech_name_map = {
         "CHP-BACK-PRESSURE": "CHP Back-Pressure",
@@ -1779,7 +1783,7 @@ multi_scenario_pro_histogram(
 
 multi_scenario_impexp_histogram(scenario_list,
                                 country='DENMARK', 
-                                marker_length=110,
+                                marker_length=80,
                                 plot_title="Imports and Exports by Scenario")
 
 multi_scenario_fuel_share_histogram(
