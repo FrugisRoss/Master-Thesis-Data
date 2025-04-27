@@ -1,3 +1,4 @@
+#%%
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,7 +30,7 @@ fuels = [
 fuel_to_processes = [
     (["AMMONIA_FLOW"], ["Nitrogen_Production", "Ammonia_Synthesis_50"]),
     (["BIOGASOLINEFLOW_BJ_H2","BIOJETFLOW_H2"], ["BioJet_H2_50"]),
-    (["EME_GASOLINE_FLOW", "EME_JET_FLOW","EME_LPG_FLOW"], ["EMethanol_Synthesis_50", "EMethanol_Upgrade_50", "CO2_Sto", "CO2_DAC_50"]),
+    (["EME_GASOLINE_FLOW", "EME_JET_FLOW","EME_LPG_FLOW"], ["EMethanol_synthesis_50", "EMethanol_Upgrade_50", "CO2_Sto", "CO2_DAC_50"]),
 
 ]
 
@@ -212,29 +213,59 @@ Avg_yearly_biomass_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Ca
 
 def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
     # Import data
-    df_FLOWC, _, _ = Import_OptiflowMR(scenario_path)
+    df_FLOWC, df_ECO_PROC_YCRAP, _ = Import_OptiflowMR(scenario_path)
     _, _, df_PROCDATA = Import_allendofmodel(scenario_path)
 
     # Dictionary to store results
     fuel_lifetime_tables = {}
 
     for fuel_group, processes in fuel_to_processes:
-        # Filter PROCDATA for relevant processes and 'PROCLIFETIME'
-        df_PROCDATA_filtered = df_PROCDATA[
+        
+        # LIFETIME DATA
+        df_PROCDATA_lifetime = df_PROCDATA[
             (df_PROCDATA["PROC"].isin(processes)) & 
             (df_PROCDATA["PROCDATASET"] == "PROCLIFETIME")
         ]
 
-        if df_PROCDATA_filtered.empty:
+        if df_PROCDATA_lifetime.empty:
             print(f"No PROCLIFETIME data found for processes: {processes}")
             continue
 
         # Find the maximum lifetime value
-        max_lifetime = int(df_PROCDATA_filtered["value"].max())
+        max_lifetime = int(df_PROCDATA_lifetime["value"].max())
+
+        #INVESTMENT COST DATA
+
+        df_ECO_PROC_YCRAP_investment= df_ECO_PROC_YCRAP[
+               (df_ECO_PROC_YCRAP["Y"] == year) & 
+               (df_ECO_PROC_YCRAP["C"] == country) & 
+               (df_ECO_PROC_YCRAP["PROC"].isin(processes)) & 
+               (df_ECO_PROC_YCRAP["COST_TYPE"] == "INVESTMENT_NA")
+          ]
+        
+        #FIXED O&M COST DATA
+
+        df_ECO_PROC_YCRAP_fixedop= df_ECO_PROC_YCRAP[
+               (df_ECO_PROC_YCRAP["Y"] == year) & 
+               (df_ECO_PROC_YCRAP["C"] == country) & 
+               (df_ECO_PROC_YCRAP["PROC"].isin(processes)) & 
+               (df_ECO_PROC_YCRAP["COST_TYPE"] == "FIXED")
+          ]
+        
+        #VARIABLE O&M COST DATA
+
+        df_FLOWC_variableop= df_FLOWC[
+               (df_FLOWC["Y"] == year) & 
+               (df_FLOWC["CCC"] == country) & 
+               (df_FLOWC["IPROCFROM"].isin(processes)) & 
+               (df_FLOWC["FLOW"] == "OPERATIONCOST")
+          ]
+
+
 
         # Create a table: rows = 0 to max_lifetime (inclusive), 8 empty columns
         table = pd.DataFrame(
-            index=range(max_lifetime + 1),   # +1 because you want inclusive
+            index=range(max_lifetime + 1),   # +1 to include the last year
             columns=[
                 "Year", 
                 "TIC [M€]", 
@@ -250,6 +281,39 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         # Fill the 'Year' column
         table["Year"] = range(max_lifetime + 1)
 
+        for t in range(max_lifetime + 1):
+             
+             #TOTAL INVESTMENT COST COLUMN
+             
+             if t == 0:
+                  # For the first year, use the investment cost
+                  table.at[t, "TIC [M€]"] = df_ECO_PROC_YCRAP_investment["value"].sum()
+             else:
+                  table.at[t, "TIC [M€]"] = 0
+             
+             for proc in processes:
+                    try:
+                         # Try to get the lifetime for this process
+                         lifetime = df_PROCDATA_lifetime.loc[df_PROCDATA_lifetime["PROC"] == proc, "value"].values[0]
+                         
+                         # If current year is lifetime + 1, add investment
+                         if t == lifetime + 1:
+                              investment_value = df_ECO_PROC_YCRAP_investment.loc[df_ECO_PROC_YCRAP_investment["PROC"] == proc, "value"].values[0]
+                              
+                         
+                              table.at[t, "TIC [M€]"] += investment_value
+                    
+                    except IndexError:
+                         print(f"Warning: Process {proc} not found in lifetime data.")
+             
+             #O&M COST COLUMN
+
+             if t==0:
+                  table.at[t, "O&M [M€]"] = 0
+             else:
+                  table.at[t, "O&M [M€]"] = df_ECO_PROC_YCRAP_fixedop["value"].sum() + df_FLOWC_variableop["value"].sum()
+                  
+
         # Save the table for this fuel group
         fuel_lifetime_tables[tuple(fuel_group)] = table
 
@@ -261,3 +325,5 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
     return fuel_lifetime_tables
 
 LCOF_calculation(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", fuels, fuel_to_processes, "2050", "DENMARK")
+
+#%%
