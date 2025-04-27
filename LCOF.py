@@ -19,12 +19,12 @@ scenario = [
      ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model")]
 
 fuels = [
-    "Ammonia_Eff", "AMMONIA_FLOW"
-    "BioGasoline_Eff", "BIOGASOLINEFLOW_BJ_H2"
-    "BioJet_Eff", "BIOJETFLOW_H2"
-    "EME_Gasoline_Eff", "EME_GASOLINE_FLOW"
-    "EME_Jet_Eff", "EME_JET_FLOW"
-    "EME_LPG_Eff", "EME_LPG_FLOW"
+    "Ammonia_Synthesis_50", "AMMONIA_FLOW"
+    "BioJet_H2_50", "BIOGASOLINEFLOW_BJ_H2"
+    "BioJet_H2_50", "BIOJETFLOW_H2"
+    "EME_Upgrade_Sum", "EME_GASOLINE_FLOW"
+    "EME_Upgrade_Sum", "EME_JET_FLOW"
+    "EME_Upgrade_Sum", "EME_LPG_FLOW"
 ]
 
 fuel_to_processes = [
@@ -128,7 +128,7 @@ def Avg_yearly_price(scenario_path, commodity, year, country):
 
      # Compute the weighted average
      numerator = (merged['value_price'] * merged['value_demand']*10**6).sum()
-     denominator = merged['value_demand'].sum()*3.6
+     denominator = merged['value_demand'].sum()
      
      if denominator == 0:
           print("Denominator is zero, cannot compute average price.")  
@@ -330,7 +330,22 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         
 
         #FUEL PRODUCTION DATA
-                  
+
+        # Filter the fuels list to only those relevant to the current fuel_group
+        filtered_pairs = [(proc, flow) for proc, flow in fuels if flow in fuel_group]
+
+        # Create a mask that checks for each (proc, flow) pair
+        mask = False
+        for proc, flow in filtered_pairs:
+               mask |= ((df_FLOWC["IPROCFROM"] == proc) & (df_FLOWC["FLOW"] == flow))
+
+        # Now select with additional conditions
+        yearly_fuel_production = df_FLOWC.loc[
+        (df_FLOWC["Y"] == year) &
+        (df_FLOWC["CCC"] == country) &
+        mask
+        ]["value"].sum()
+
 
 
 
