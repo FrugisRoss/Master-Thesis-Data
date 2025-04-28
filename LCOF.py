@@ -19,12 +19,12 @@ scenario = [
      ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model")]
 
 fuels = [
-    "Ammonia_Synthesis_50", "AMMONIA_FLOW"
-    "BioJet_H2_50", "BIOGASOLINEFLOW_BJ_H2"
-    "BioJet_H2_50", "BIOJETFLOW_H2"
-    "EME_Upgrade_Sum", "EME_GASOLINE_FLOW"
-    "EME_Upgrade_Sum", "EME_JET_FLOW"
-    "EME_Upgrade_Sum", "EME_LPG_FLOW"
+    ("Ammonia_Synthesis_50", "AMMONIA_FLOW"),
+    ("BioJet_H2_50", "BIOGASOLINEFLOW_BJ_H2"),
+    ("BioJet_H2_50", "BIOJETFLOW_H2"),
+    ("EME_Upgrade_Sum", "EME_GASOLINE_FLOW"),
+    ("EME_Upgrade_Sum", "EME_JET_FLOW"),
+    ("EME_Upgrade_Sum", "EME_LPG_FLOW")
 ]
 
 fuel_to_processes = [
@@ -124,7 +124,7 @@ def Avg_yearly_price(scenario_path, commodity, year, country):
                       on='RRR', 
                       suffixes=('_price', '_demand'))
      
-     print(merged)
+     #print(merged)
 
      # Compute the weighted average
      numerator = (merged['value_price'] * merged['value_demand']*10**6).sum()
@@ -139,9 +139,9 @@ def Avg_yearly_price(scenario_path, commodity, year, country):
 
      return avg_price
 
-Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Electricity", "2050" , "DENMARK")
-Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "H2", "2050" , "DENMARK")
-Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Heat", "2050" , "DENMARK")
+# Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Electricity", "2050" , "DENMARK")
+# Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "H2", "2050" , "DENMARK")
+# Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Heat", "2050" , "DENMARK")
 
           
 def Avg_yearly_biomass_price (scenario_path, year, country):
@@ -194,7 +194,7 @@ def Avg_yearly_biomass_price (scenario_path, year, country):
                       on='FLOW', 
                       suffixes=('_bio', '_price'))
     
-    print(merged)
+    #print(merged)
 
     # Compute the weighted average
     numerator = (merged['value_bio'] * merged['value_price']*10**6).sum()
@@ -209,7 +209,7 @@ def Avg_yearly_biomass_price (scenario_path, year, country):
 
     return avg_price
 
-Avg_yearly_biomass_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model",  "2050" , "DENMARK")
+# Avg_yearly_biomass_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model",  "2050" , "DENMARK")
 
 
 def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
@@ -219,6 +219,8 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
 
     # Dictionary to store results
     fuel_lifetime_tables = {}
+    fuel_lcof = {}
+
 
     el_price=Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Electricity", "2050" , "DENMARK")
     h2_price=Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "H2", "2050" , "DENMARK")
@@ -279,53 +281,70 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         net_consumed_biomass=0
 
         for proc in processes:
-             try:
-                  net_consumed_electricity += df_FLOWC.loc[(df_FLOWC["Y"] == year) & 
-                    (df_FLOWC["CCC"] == country) & 
-                    (df_FLOWC["IPROCTO"].isin(processes)) & 
-                    (df_FLOWC["IPROCFROM"] == "ElecBuffer_GJ")]["value"].sum()
-             except IndexError:
+               try:
+                    net_consumed_electricity += df_FLOWC.loc[
+                         (df_FLOWC["Y"] == year) & 
+                         (df_FLOWC["CCC"] == country) & 
+                         (df_FLOWC["IPROCTO"]== proc) & 
+                         (df_FLOWC["IPROCFROM"] == "ElecBuffer_GJ")
+                    ]["value"].sum()
+               except IndexError:
                     print(f"Warning: Process {proc} doesn't consume electricity.")
 
-             try:
-                  net_consumed_electricity -= df_FLOWC.loc[(df_FLOWC["Y"] == year) & 
-                    (df_FLOWC["CCC"] == country) & 
-                    (df_FLOWC["IPROCFROM"].isin(processes)) & 
-                    (df_FLOWC["IPROCTO"] == "EL_Opti_to_Bal_Conv")]["value"].sum()
-             except IndexError:
+               try:
+                    net_consumed_electricity -= df_FLOWC.loc[
+                         (df_FLOWC["Y"] == year) & 
+                         (df_FLOWC["CCC"] == country) & 
+                         (df_FLOWC["IPROCFROM"]== proc) & 
+                         (df_FLOWC["IPROCTO"] == "EL_Opti_to_Bal_Conv")
+                    ]["value"].sum()
+               except IndexError:
                     print(f"Warning: Process {proc} doesn't produce electricity.")
-               
-             try:
-                  net_consumed_h2 += df_FLOWC.loc[(df_FLOWC["Y"] == year) & 
-                    (df_FLOWC["CCC"] == country) & 
-                    (df_FLOWC["IPROCTO"].isin(processes)) & 
-                    (df_FLOWC["IPROCFROM"] == "Hydrogen_Use")]["value"].sum()
-             except IndexError:
+
+               try:
+                    net_consumed_h2 += df_FLOWC.loc[
+                         (df_FLOWC["Y"] == year) & 
+                         (df_FLOWC["CCC"] == country) & 
+                         (df_FLOWC["IPROCTO"]== proc) & 
+                         (df_FLOWC["IPROCFROM"] == "Hydrogen_Use")
+                    ]["value"].sum()
+               except IndexError:
                     print(f"Warning: Process {proc} doesn't consume hydrogen.")
 
-             try:
-                  net_consumed_heat += df_FLOWC.loc[(df_FLOWC["Y"] == year) & 
-                    (df_FLOWC["CCC"] == country) & 
-                    (df_FLOWC["IPROCTO"].isin(processes)) & 
-                    (df_FLOWC["IPROCFROM"] == "HeatBuffer_GJ")]["value"].sum()
-             except IndexError:
+               try:
+                    net_consumed_heat += df_FLOWC.loc[
+                         (df_FLOWC["Y"] == year) & 
+                         (df_FLOWC["CCC"] == country) & 
+                         (df_FLOWC["IPROCTO"]== proc) & 
+                         (df_FLOWC["IPROCFROM"] == "HeatBuffer_GJ")
+                    ]["value"].sum()
+               except IndexError:
                     print(f"Warning: Process {proc} doesn't consume heat.")
 
-             try:
-                    net_consumed_heat -= df_FLOWC.loc[(df_FLOWC["Y"] == year) & 
-                    (df_FLOWC["CCC"] == country) & 
-                    (df_FLOWC["IPROCFROM"].isin(processes)) & 
-                    (df_FLOWC["IPROCTO"] == "Heat_Opti_to_Bal_Conv")]["value"].sum()
-             except IndexError:
-                  print(f"Warning: Process {proc} doesn't produce heat.")
+               try:
+                    net_consumed_heat -= df_FLOWC.loc[
+                         (df_FLOWC["Y"] == year) & 
+                         (df_FLOWC["CCC"] == country) & 
+                         (df_FLOWC["IPROCFROM"]== proc) & 
+                         (df_FLOWC["IPROCTO"] == "Heat_Opti_to_Bal_Conv")
+                    ]["value"].sum()
+               except IndexError:
+                    print(f"Warning: Process {proc} doesn't produce heat.")
 
-             try:
-                  net_consumed_biomass += df_FLOWC.loc[(df_FLOWC["Y"] == year) &
-                    (df_FLOWC["CCC"] == country) &
-                    (df_FLOWC["IPROCTO"].isin(processes)) &
-                    (df_FLOWC["IPROCFROM"] == "Biomass_for_use")]["value"].sum()
-             except IndexError:
-                   print(f"Warning: Process {proc} doesn't consume biomass.")
+               try:
+                    net_consumed_biomass += df_FLOWC.loc[
+                         (df_FLOWC["Y"] == year) & 
+                         (df_FLOWC["CCC"] == country) & 
+                         (df_FLOWC["IPROCTO"]== proc) & 
+                         (df_FLOWC["IPROCFROM"] == "Biomass_for_use")
+                    ]["value"].sum()
+               except IndexError:
+                    print(f"Warning: Process {proc} doesn't consume biomass.")
+
+               print(f"Net consumed electricity: {net_consumed_electricity} PJ, at {proc} ")
+               print(f"Net consumed hydrogen: {net_consumed_h2} PJ, at {proc} ")
+               print(f"Net consumed heat: {net_consumed_heat} PJ, at {proc} ")
+               print(f"Net consumed biomass: {net_consumed_biomass} PJ, at {proc} ")
 
         
 
@@ -345,11 +364,6 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         (df_FLOWC["CCC"] == country) &
         mask
         ]["value"].sum()
-
-
-
-
-
 
         # Create a table: rows = 0 to max_lifetime (inclusive), 8 empty columns
         table = pd.DataFrame(
@@ -404,8 +418,8 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
             #FUEL COST COLUMN
              if t==0:
                  table.at[t, "FUEL COST [M€]"] = 0
-
-             table.at[t, "FUEL COST [M€]"] = (net_consumed_electricity * el_price + net_consumed_h2 * h2_price + net_consumed_heat * heat_price + net_consumed_biomass * biomass_price) * 10**-6
+             else:
+                  table.at[t, "FUEL COST [M€]"] = (net_consumed_electricity * el_price + net_consumed_h2 * h2_price + net_consumed_heat * heat_price + net_consumed_biomass * biomass_price) * 10**-6
 
             #TOTAL YEARLY COST COLUMN
                  
@@ -414,20 +428,39 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
             #TOTAL YEARLY COST ACTUALIZED COLUMN
 
              table.at[t, "TOT YEARLY COST ACT [M€]"] = table.at[t, "TOT YEARLY COST [M€]"] / ((1 + disc_rate) ** t)
-     
-                
-                  
+
+            #TOTAL YEARLY FUEL PRODUCTION COLUMN
+             if t==0:
+                  table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] = 0
+             else:
+                  table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] = yearly_fuel_production 
+
+            #TOTAL YEARLY FUEL PRODUCTION ACTUALIZED COLUMN
+             table.at[t, "YEARLY FUEL PRODUCTION ACT [PJ]"] = table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] / ((1 + disc_rate) ** t)
+
+        lcof= (table["TOT YEARLY COST ACT [M€]"].sum() / table["YEARLY FUEL PRODUCTION ACT [PJ]"].sum()) 
 
         # Save the table for this fuel group
         fuel_lifetime_tables[tuple(fuel_group)] = table
+        fuel_lcof[tuple(fuel_group)] = lcof
 
         
-        print(f"Table for fuel group {fuel_group} (max lifetime {max_lifetime} years):")
-        print(table)
+     #    print(f"Table for fuel group {fuel_group} (max lifetime {max_lifetime} years):")
+        
+     #    print(table)
+
+        # Save the table as a CSV file
+        fuel_group_name = "_".join(fuel_group)  # Create a name from the fuel group
+        csv_file_path = os.path.join(os.path.dirname(__file__), f"{fuel_group_name}.csv")
+        table.to_csv(csv_file_path, index=False)
+
+        
+
+        print(f"LCOF for fuel group {fuel_group}: {lcof} €/GJ")
 
 
-    return fuel_lifetime_tables
+    return fuel_lifetime_tables, fuel_lcof
 
-first_try=LCOF_calculation(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", fuels, fuel_to_processes, "2050", "DENMARK")
+first_try_table, first_try_lcof=LCOF_calculation(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", fuels, fuel_to_processes, "2050", "DENMARK")
 
 #%%
