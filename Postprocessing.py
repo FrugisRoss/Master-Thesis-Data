@@ -27,13 +27,13 @@ import plotly.graph_objects as go
 scenario_list = [
      ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model"),
      #("Base Case DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK_ModOut\model"),
-     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_RightOut\model"),
-     #("CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_DK_ModOut\model"),
-     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_RightOut\model"),
+    #  ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_RightOut\model"),
+    #  #("CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_DK_ModOut\model"),
+    #  ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_RightOut\model"),
      
      
-     #("Biodiversity+CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_DK_ModOut\model"),     
-     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL_RightOut\model"),
+    #  #("Biodiversity+CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_DK_ModOut\model"),     
+    #  ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL_RightOut\model"),
     
 
 ]
@@ -330,7 +330,10 @@ def multi_scenario_fuel_supply(
                     x=x_categories,
                     y=y_vals,
                     name=fuel,
-                    marker_color=color_map.get(fuel, fallback_color),
+                    marker=dict(
+                        color=color_map.get(fuel, fallback_color),
+                        line=dict(color='black', width=1)  # Add black border to bars
+                    ),
                     showlegend=show_legend,
                 ),
                 row=1, col=c_col
@@ -354,7 +357,10 @@ def multi_scenario_fuel_supply(
                     x=x_categories,
                     y=y_vals,
                     name=resource,
-                    marker_color=color_map.get(resource, fallback_color),
+                    marker=dict(
+                        color=color_map.get(resource, fallback_color),
+                        line=dict(color='black', width=1)  # Add black border to bars
+                    ),
                     showlegend=show_legend,
                 ),
                 row=1, col=c_col
@@ -392,7 +398,7 @@ def multi_scenario_fuel_supply(
     
     # Layout
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         barmode='stack',
         bargap=0.3,
         font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
@@ -481,7 +487,10 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
                     y=[val],
                     base=[base],
                     name=cat,
-                    marker_color=color_map.get(cat, fallback_color),
+                    marker=dict(
+                        color=color_map.get(cat, fallback_color),
+                        line=dict(color="black", width=1)  # Add black border to bars
+                    ),
                     showlegend=show_legend
                 ),
                 row=1, col=c_col
@@ -503,7 +512,10 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
                     y=[val],
                     base=[base],
                     name=cat,
-                    marker_color=color_map.get(cat, fallback_color),
+                    marker=dict(
+                        color=color_map.get(cat, fallback_color),
+                        line=dict(color="black", width=1)  # Add black border to bars
+                    ),
                     showlegend=show_legend
                 ),
                 row=1, col=c_col
@@ -539,7 +551,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
         )
 
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         barmode="overlay",
         font=dict(
             family="DejaVu Sans, sans-serif",
@@ -677,7 +689,10 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
                     x=x_labels,
                     y=fuel_arrays[f],
                     name=f,
-                    marker_color=fuel_colors.get(f, fallback_color),
+                    marker=dict(
+                        color=fuel_colors.get(f, fallback_color),
+                        line=dict(color='black', width=1)  # Add black border to bars
+                    ),
                     showlegend=show_legend,
                 ),
                 row=1, col=c_col
@@ -710,7 +725,7 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
         )
 
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         barmode='stack',
         font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
         paper_bgcolor='white',
@@ -839,7 +854,10 @@ def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="In
                     x=commodities,
                     y=y_vals,
                     name=friendly_name,
-                    marker_color=color,
+                    marker=dict(
+                        color=color,
+                        line=dict(color='black', width=1)  # Add black border to bars
+                    ),
                     showlegend=show_legend,
                 ),
                 row=1, col=idx+1
@@ -854,7 +872,7 @@ def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="In
             showgrid=False,
             row=1, col=idx+1
         )
-        y_title = '[GW]' if idx == 0 else ''
+        y_title = 'Total Installed Capacity [GW]' if idx == 0 else ''
         fig.update_yaxes(
             title_text=y_title,
             showline=True,
@@ -871,7 +889,7 @@ def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="In
         )
 
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         barmode='stack',
         font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
         paper_bgcolor='white',
@@ -887,6 +905,11 @@ def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="In
     fig.show()
 
     # fig.write_image('G_CAP_YCRAF_Histogram.svg')
+
+
+
+
+
 
 
 def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Production by Scenario (in Balmorel)", demand_markers=True):
@@ -1011,7 +1034,10 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
                     x=commodities,
                     y=y_vals,
                     name=friendly_name,
-                    marker_color=color,
+                    marker=dict(
+                        color=color,
+                        line=dict(color='black', width=1)  # Add black border to bars
+                    ),
                     showlegend=show_legend,
                 ),
                 row=1, col=idx+1
@@ -1115,7 +1141,7 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
         )
 
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         barmode='stack',
         font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
         paper_bgcolor='white',
@@ -1158,8 +1184,8 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
     valid_scenarios = []
     scenario_data = []
     net_export_shown = False
-    imp_shown=False
-    exp_shown=False
+    imp_shown = False
+    exp_shown = False
 
     market_area_list = market_areas.get(country, [])
 
@@ -1217,7 +1243,10 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
                         x=[com],
                         y=[-import_val],
                         name='Imports',
-                        marker_color=color_map['Import'],
+                        marker=dict(
+                            color=color_map['Import'],
+                            line=dict(color='black', width=1)  # Add black border to bars
+                        ),
                         showlegend=False if imp_shown else True,
                     ),
                     row=1, col=idx + 1
@@ -1231,9 +1260,11 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
                         x=[com],
                         y=[export_val],
                         name='Exports',
-                        marker_color=color_map['Export'],
+                        marker=dict(
+                            color=color_map['Export'],
+                            line=dict(color='black', width=1)  # Add black border to bars
+                        ),
                         showlegend=False if exp_shown else True,
-                        
                     ),
                     row=1, col=idx + 1
                 )
@@ -1296,7 +1327,7 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
         )
 
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         barmode='relative',
         font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
         paper_bgcolor='white',
@@ -1471,7 +1502,10 @@ def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Prod
                         x=commodities,
                         y=fuel_shares,
                         name=friendly_name,
-                        marker_color=color,
+                        marker=dict(
+                            color=color,
+                            line=dict(color='black', width=1)  # Add black border to bars
+                        ),
                         # Only show legend once (in the first subplot) for each fuel.
                         showlegend=True if friendly_name not in encountered_legends else False,
                     ),
@@ -1510,7 +1544,7 @@ def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Prod
     
     # Update overall layout.
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         barmode='stack',
         font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
         paper_bgcolor='white',
@@ -1575,7 +1609,10 @@ def multi_scenario_objective_histogram_simple(scenario_list, country, plot_title
             go.Bar(
                 x=grouped['SUBCATEGORY'],
                 y=grouped['value'],
-                marker_color='steelblue',
+                marker=dict(
+                    color='steelblue',
+                    line=dict(color='black', width=1)  # Add black border to bars
+                ),
                 showlegend=False
             ),
             row=1,
@@ -1604,7 +1641,7 @@ def multi_scenario_objective_histogram_simple(scenario_list, country, plot_title
 
     # Final layout tweaks
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         font=dict(size=14),
         barmode='group',
         paper_bgcolor='white',
@@ -1674,7 +1711,7 @@ def stacked_objective_by_subcategory(scenario_list, country, plot_title="Stacked
 
     # Final layout
     fig.update_layout(
-        title=plot_title,
+        title=plot_title if title else None,
         barmode='stack',
         font=dict(size=14),
         paper_bgcolor='white',
@@ -1734,7 +1771,7 @@ def multi_scenario_objective(scenario_list,  plot_title="Objective Function Valu
 
     # Final layout
     fig.update_layout(
-    title=plot_title,
+    title=plot_title if title else None,
     xaxis_title='Scenario',
     yaxis_title='M€',
     font=dict(size=14),
@@ -1745,10 +1782,8 @@ def multi_scenario_objective(scenario_list,  plot_title="Objective Function Valu
 
     fig.show()
 
-       
-# ------------------------------------------------------------------------------
-# F) Execute plotting functions and save the plots as needed
-# ------------------------------------------------------------------------------
+title=False
+
 multi_scenario_fuel_supply(
     scenario_list,
     Demands_name,
@@ -1771,8 +1806,9 @@ multi_scenario_biomass_consumption(
 multi_scenario_gcap_histogram(
     scenario_list,
     country='DENMARK',
-    plot_title="Total Installed Capacity by Scenario"
+    plot_title="Total Installed Capacity"
 )
+
 
 multi_scenario_pro_histogram(
     scenario_list,
@@ -1789,7 +1825,7 @@ multi_scenario_impexp_histogram(scenario_list,
 multi_scenario_fuel_share_histogram(
     scenario_list,
     country='DENMARK',
-    plot_title="Energy Production by Source"
+    plot_title="Energy Production by Fuel"
 )
 
 multi_scenario_objective_histogram_simple(
@@ -1803,3 +1839,4 @@ stacked_objective_by_subcategory(scenario_list,
 
 multi_scenario_objective(scenario_list, 
                          plot_title="Objective Function Value")
+#%%

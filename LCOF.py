@@ -280,73 +280,77 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         net_consumed_heat=0
         net_consumed_biomass=0
 
+        # FEEDSTOCK DATA
+
+        feedstock_consumption = pd.DataFrame(index=["Electricity", "Hydrogen", "Heat", "Biomass"], columns=processes)
+
         for proc in processes:
-               try:
-                    net_consumed_electricity += df_FLOWC.loc[
-                         (df_FLOWC["Y"] == year) & 
-                         (df_FLOWC["CCC"] == country) & 
-                         (df_FLOWC["IPROCTO"]== proc) & 
-                         (df_FLOWC["IPROCFROM"] == "ElecBuffer_GJ")
-                    ]["value"].sum()
-               except IndexError:
-                    print(f"Warning: Process {proc} doesn't consume electricity.")
+            # Electricity
+            consumed_electricity = df_FLOWC.loc[
+                (df_FLOWC["Y"] == year) & 
+                (df_FLOWC["CCC"] == country) & 
+                (df_FLOWC["IPROCTO"] == proc) & 
+                (df_FLOWC["IPROCFROM"] == "ElecBuffer_GJ")
+            ]["value"].sum()
 
-               try:
-                    net_consumed_electricity -= df_FLOWC.loc[
-                         (df_FLOWC["Y"] == year) & 
-                         (df_FLOWC["CCC"] == country) & 
-                         (df_FLOWC["IPROCFROM"]== proc) & 
-                         (df_FLOWC["IPROCTO"] == "EL_Opti_to_Bal_Conv")
-                    ]["value"].sum()
-               except IndexError:
-                    print(f"Warning: Process {proc} doesn't produce electricity.")
+            produced_electricity = df_FLOWC.loc[
+                (df_FLOWC["Y"] == year) & 
+                (df_FLOWC["CCC"] == country) & 
+                (df_FLOWC["IPROCFROM"] == proc) & 
+                (df_FLOWC["IPROCTO"] == "EL_Opti_to_Bal_Conv")
+            ]["value"].sum()
 
-               try:
-                    net_consumed_h2 += df_FLOWC.loc[
-                         (df_FLOWC["Y"] == year) & 
-                         (df_FLOWC["CCC"] == country) & 
-                         (df_FLOWC["IPROCTO"]== proc) & 
-                         (df_FLOWC["IPROCFROM"] == "Hydrogen_Use")
-                    ]["value"].sum()
-               except IndexError:
-                    print(f"Warning: Process {proc} doesn't consume hydrogen.")
+            net_consumed_electricity += consumed_electricity - produced_electricity
 
-               try:
-                    net_consumed_heat += df_FLOWC.loc[
-                         (df_FLOWC["Y"] == year) & 
-                         (df_FLOWC["CCC"] == country) & 
-                         (df_FLOWC["IPROCTO"]== proc) & 
-                         (df_FLOWC["IPROCFROM"] == "HeatBuffer_GJ")
-                    ]["value"].sum()
-               except IndexError:
-                    print(f"Warning: Process {proc} doesn't consume heat.")
+            # Hydrogen
+            consumed_h2 = df_FLOWC.loc[
+                (df_FLOWC["Y"] == year) & 
+                (df_FLOWC["CCC"] == country) & 
+                (df_FLOWC["IPROCTO"] == proc) & 
+                (df_FLOWC["IPROCFROM"] == "Hydrogen_Use")
+            ]["value"].sum()
 
-               try:
-                    net_consumed_heat -= df_FLOWC.loc[
-                         (df_FLOWC["Y"] == year) & 
-                         (df_FLOWC["CCC"] == country) & 
-                         (df_FLOWC["IPROCFROM"]== proc) & 
-                         (df_FLOWC["IPROCTO"] == "Heat_Opti_to_Bal_Conv")
-                    ]["value"].sum()
-               except IndexError:
-                    print(f"Warning: Process {proc} doesn't produce heat.")
+            net_consumed_h2 += consumed_h2
 
-               try:
-                    net_consumed_biomass += df_FLOWC.loc[
-                         (df_FLOWC["Y"] == year) & 
-                         (df_FLOWC["CCC"] == country) & 
-                         (df_FLOWC["IPROCTO"]== proc) & 
-                         (df_FLOWC["IPROCFROM"] == "Biomass_for_use")
-                    ]["value"].sum()
-               except IndexError:
-                    print(f"Warning: Process {proc} doesn't consume biomass.")
+            # Heat
+            consumed_heat = df_FLOWC.loc[
+                (df_FLOWC["Y"] == year) & 
+                (df_FLOWC["CCC"] == country) & 
+                (df_FLOWC["IPROCTO"] == proc) & 
+                (df_FLOWC["IPROCFROM"] == "HeatBuffer_GJ")
+            ]["value"].sum()
 
-               print(f"Net consumed electricity: {net_consumed_electricity} PJ, at {proc} ")
-               print(f"Net consumed hydrogen: {net_consumed_h2} PJ, at {proc} ")
-               print(f"Net consumed heat: {net_consumed_heat} PJ, at {proc} ")
-               print(f"Net consumed biomass: {net_consumed_biomass} PJ, at {proc} ")
+            produced_heat = df_FLOWC.loc[
+                (df_FLOWC["Y"] == year) & 
+                (df_FLOWC["CCC"] == country) & 
+                (df_FLOWC["IPROCFROM"] == proc) & 
+                (df_FLOWC["IPROCTO"] == "Heat_Opti_to_Bal_Conv")
+            ]["value"].sum()
 
-        
+            net_consumed_heat += consumed_heat - produced_heat
+
+            # Biomass
+            consumed_biomass = df_FLOWC.loc[
+                (df_FLOWC["Y"] == year) & 
+                (df_FLOWC["CCC"] == country) & 
+                (df_FLOWC["IPROCTO"] == proc) & 
+                (df_FLOWC["IPROCFROM"] == "Biomass_for_use")
+            ]["value"].sum()
+
+            net_consumed_biomass += consumed_biomass
+
+            # Fill the DataFrame
+            feedstock_consumption.at["Electricity", proc] = consumed_electricity - produced_electricity
+            feedstock_consumption.at["Hydrogen", proc] = consumed_h2
+            feedstock_consumption.at["Heat", proc] = consumed_heat - produced_heat
+            feedstock_consumption.at["Biomass", proc] = consumed_biomass
+
+        # Save feedstock consumption table for this fuel group
+        feedstock_csv_path = os.path.join(os.path.dirname(__file__), f"feedstock_consumption_{'_'.join(fuel_group)}.csv")
+        feedstock_consumption.to_csv(feedstock_csv_path)
+
+        print(f"Feedstock consumption table for fuel group {fuel_group}:")
+        print(feedstock_consumption)
 
         #FUEL PRODUCTION DATA
 
