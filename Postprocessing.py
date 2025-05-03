@@ -18,7 +18,9 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
+df_cap2020=pd.read_excel(r"C:\Users\sigur\OneDrive\DTU\Output Data\OutputCapacities.xlsx", sheet_name="2020 Capacities")
 
+print(df_cap2020.columns)
 #%%
 # ------------------------------------------------------------------------------
 # A) DEFINE YOUR SCENARIOS
@@ -905,7 +907,212 @@ def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="In
     fig.show()
 
     # fig.write_image('G_CAP_YCRAF_Histogram.svg')
+def multi_scenario_gcap_histogram_with_exogenous(
+    scenarios,df_cap2020,  country='DENMARK', plot_title="Installed Capacity By Scenario"
+):
+    fig = make_subplots(
+    rows=1,
+    cols=len(scenarios),
+    shared_yaxes=True,
+    subplot_titles=[name for name, _ in scenarios]
+)
+    
+    encountered_legends = set()
+    tech_name_map = {
+        "CHP-BACK-PRESSURE": "CHP Back-Pressure",
+        "ELECT-TO-HEAT": "Electric to Heat",
+        "INTERSEASONAL-HEAT-STORAGE": "Interseasonal Heat Storage",
+        "INTRASEASONAL-HEAT-STORAGE": "Intraseasonal Heat Storage",
+        "SOLAR-PV": "Solar PV",
+        "HYDRO-RUN-OF-RIVER": "Hydro Run-of-River",
+        "WIND-ON": "Wind Onshore",
+        "WIND-OFF": "Wind Offshore",
+        "ELECTROLYZER": "Electrolyzer",
+        "H2-STORAGE": "H2 Storage",
+        "BOILERS": "Boilers",
+        "CHP-EXTRACTION": "CHP Extraction",
+        "INTRASEASONAL-ELECT-STORAGE": "Intraseasonal Electro Storage",
+        "HYDRO-RESERVOIRS": "Hydro Reservoirs",
+        "CONDENSING": "Condensing",
+        "FUELCELL": "Fuel Cell",
+        "STEAMREFORMING": "Steam Reforming",
+    }
+    tech_color_map = {
+        "CHP Back-Pressure": "#8B4513",
+        "Electric to Heat": "#d62728",
+        "Interseasonal Heat Storage": "#2ca02c",
+        "Intraseasonal Heat Storage": "#d62728",
+        "Solar PV": "#ffeb3b",
+        "Hydro Run-of-River": "#005f73",
+        "Wind Onshore": "#87CEFA",
+        "Wind Offshore": "#ADD8E6",
+        "Electrolyzer": "#32CD32",
+        "H2 Storage": "#17becf",
+        "Boilers": "#FFA500",
+        "CHP Extraction": "#556B2F",
+        "Intraseasonal Electro Storage": "#98df8a",
+        "Hydro Reservoirs": "#003f5c",
+        "Condensing": "#c5b0d5",
+        "Fuel Cell": "#c49c94",
+        "Steam Reforming": "#f7b6d2"
+    }
 
+    ordered_commodities = ['HEAT', 'HYDROGEN', 'ELECTRICITY']
+    color_palette = px.colors.qualitative.Plotly
+    color_index = {}
+    threshold = 1e-9
+
+    # Transform df_cap2020 into a usable exogenous capacity DataFrame
+    df_cap2020 = df_cap2020.copy()
+    df_cap2020= df_cap2020[
+            (~df_cap2020['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)) 
+        ]
+
+
+    # Handle COMBINED splitting
+    combined_mask = df_cap2020['COMMODITY'] == 'COMBINED'
+    not_combined = df_cap2020[~combined_mask].copy()
+    combined = df_cap2020[combined_mask].copy()
+
+    # Split COMBINED into HEAT and ELECTRICITY rows
+    combined_heat = combined.copy()
+    combined_heat['value'] = combined_heat['value'] * 1e-3 * combined_heat['HEAT/TOT']
+    combined_heat['COMMODITY'] = 'HEAT'
+
+    combined_electricity = combined.copy()
+    combined_electricity['value'] = combined_electricity['value'] * 1e-3 * (1 - combined_electricity['HEAT/TOT'])
+    combined_electricity['COMMODITY'] = 'ELECTRICITY'
+
+    not_combined['value'] = not_combined['value'] * 1e-3
+
+    df_exog_combined = pd.concat([not_combined, combined_heat, combined_electricity], ignore_index=True)
+
+    df_exog_grouped = df_exog_combined.groupby(['COMMODITY', 'TECH_TYPE'], as_index=False)['value'].sum()
+
+    for idx, (scenario_name, scenario_path) in enumerate(scenarios):
+        main_results_path = os.path.join(scenario_path, "MainResults.gdx")
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, *_ = Import_BalmorelMR(main_results_path)
+
+        if country != 'all':
+            df_G_CAP_YCRAF = df_G_CAP_YCRAF[df_G_CAP_YCRAF['C'] == country]
+
+        df_current = df_G_CAP_YCRAF[
+            (~df_G_CAP_YCRAF['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)) 
+        ]
+
+        grouped_current = df_current.groupby(['COMMODITY', 'TECH_TYPE'], as_index=False)['value'].sum()
+
+        tech_list = sorted(set(grouped_current['TECH_TYPE']).union(df_exog_grouped['TECH_TYPE']))
+
+        x_vals = []
+        for com in ordered_commodities:
+            x_vals.append(f"{com}_2020")
+            x_vals.append(f"{com}_2050")
+
+        def get_yvals(grouped, tech, is_exogenous=True):
+            y_vals = []
+            for com in ordered_commodities:
+                val_series = grouped.loc[(grouped['COMMODITY'] == com) & (grouped['TECH_TYPE'] == tech), 'value']
+                value = val_series.values[0] if not val_series.empty else 0
+                y_vals.append(value if value >= threshold else 0)
+            return y_vals
+
+        for tech in tech_list:
+            friendly_name = tech_name_map.get(tech, tech)
+            color = tech_color_map.get(friendly_name)
+            if color is None:
+                if tech not in color_index:
+                    color_index[tech] = color_palette[len(color_index) % len(color_palette)]
+                color = color_index[tech]
+
+            y_exog = get_yvals(df_exog_grouped, tech)
+            y_curr = get_yvals(grouped_current, tech)
+
+            y_combined = []
+            for val_exog, val_curr in zip(y_exog, y_curr):
+                y_combined.append(val_exog)
+                y_combined.append(val_curr)
+
+            if sum(y_combined) == 0:
+                continue
+
+            show_legend = tech not in encountered_legends
+            encountered_legends.add(tech)
+
+            fig.add_trace(
+                go.Bar(
+                    x=x_vals,
+                    y=y_combined,
+                    name=friendly_name,
+                    marker=dict(color=color, line=dict(color='black', width=1)),
+                    showlegend=show_legend
+                ),
+                row=1, col=idx + 1
+            )
+
+
+        # Customize tick labels: show only '2020', '2050' per pair
+        tickvals = x_vals
+        ticktext = ['2020' if '_2020' in x else '2050' for x in x_vals]
+
+        fig.update_xaxes(
+            title_text='',
+            tickvals=tickvals,
+            ticktext=ticktext,
+            tickangle=0,
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=False,
+            row=1, col=idx + 1
+        )
+
+        # Add centered commodity labels
+        for i, com in enumerate(ordered_commodities):
+            fig.add_annotation(
+                dict(
+                    text=com,
+                    xref=f'x{idx + 1}' if idx > 0 else 'x',
+                    yref='paper',
+                    x=(i * 2) + 0.5,
+                    y=-0.12,
+                    showarrow=False,
+                    font=dict(size=14),
+                )
+            )
+
+        fig.update_yaxes(
+            title_text='Total Installed Capacity [GW]' if idx == 0 else '',
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.6,
+            zeroline=True,
+            zerolinewidth=0.6,
+            zerolinecolor='lightgray',
+            row=1, col=idx + 1
+        )
+
+    fig.update_layout(  # unchanged layout
+        title=plot_title if plot_title else None,
+        barmode='stack',
+        font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        legend=dict(
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1,
+            font=dict(size=12)
+        ),
+        margin=dict(l=50, r=20, t=80, b=60)
+    )
+
+    fig.show()
 
 
 
@@ -1809,6 +2016,12 @@ multi_scenario_gcap_histogram(
     plot_title="Total Installed Capacity"
 )
 
+multi_scenario_gcap_histogram_with_exogenous(
+    scenario_list,
+    df_cap2020, 
+    country='DENMARK', 
+    plot_title="Installed Capacity By Scenario"
+)
 
 multi_scenario_pro_histogram(
     scenario_list,
