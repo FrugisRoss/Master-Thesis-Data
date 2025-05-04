@@ -989,6 +989,11 @@ def multi_scenario_gcap_histogram_with_exogenous(
 
     df_exog_grouped = df_exog_combined.groupby(['COMMODITY', 'TECH_TYPE'], as_index=False)['value'].sum()
 
+    df_exog_grouped = df_exog_grouped [
+            (~df_exog_grouped ['TECH_TYPE'].astype(str).str.contains('STORAGE', case=False, na=False)) 
+        ]
+
+
     for idx, (scenario_name, scenario_path) in enumerate(scenarios):
         main_results_path = os.path.join(scenario_path, "MainResults.gdx")
         df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, *_ = Import_BalmorelMR(main_results_path)
@@ -1076,7 +1081,7 @@ def multi_scenario_gcap_histogram_with_exogenous(
                     xref=f'x{idx + 1}' if idx > 0 else 'x',
                     yref='paper',
                     x=(i * 2) + 0.5,
-                    y=-0.12,
+                    y=-0.07,
                     showarrow=False,
                     font=dict(size=14),
                 )
@@ -1098,7 +1103,7 @@ def multi_scenario_gcap_histogram_with_exogenous(
         )
 
     fig.update_layout(  # unchanged layout
-        title=plot_title if plot_title else None,
+        title=plot_title if title else None,
         barmode='stack',
         font=dict(family='DejaVu Sans, sans-serif', size=14, color='black'),
         paper_bgcolor='white',
