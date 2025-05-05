@@ -57,7 +57,7 @@ plot_filters = [
     #  ([("Agricultural_Land", "Agriculture")],"Agricultural Land", "Greens", "[Mha]"),
     #  ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest", "Oranges", "[Mha]"),
        ([("CO2_Source_DAC", "CO2_DAC_50")],"CO2 Captured by DAC",1e-6, "Purples", "[Mton]"),
-       ([("CO2_Source_Biogen", "CO2_BIOGEN_TOT")],"Biogenic CO2 from Point Sources",1e-6, "Greens", "[Mton]"),
+       ([("CO2_Source_Biogen", "CO2_BIOGEN_TOT")],"Biogenic CO2 from PS",1e-6, "Greens", "[Mton]"),
     #   ([("Air_fuels_sum", "AirBuffer"),
     #     ("Road_fuels_sum", "RoadBuffer"),
     #     ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production",1e-10, "Reds", "[PJ]"),
@@ -231,14 +231,8 @@ def plot_municipalities(df, shapefile_path, column_municipality, column_value,
 
 def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping):
     """
-    Plots aggregated values from GDX files for each scenario and filter using categorized bins (4 + zero bin).
-
-    Parameters:
-        scenario_list (list): List of (scenario_name, gdx_file_path) tuples.
-        plot_filters (list): List of filters as (filter_pairs, plot_title, tolerance, colormap name, unit).
-        shapefile_path (str): Path to the shapefile.
-        municipality_name_mapping (dict): Mapping from GAMS to shapefile municipality names.
-
+    Plots aggregated values from GDX files for each scenario and filter using categorized bins (4 + zero bin),
+    or exact value mapping if ≤ 4 non-zero values.
     """
     for filter_pairs, plot_title, tolerance, cmap_name, unit in plot_filters:
         fig, axes = plt.subplots(1, len(scenario_list), figsize=(20, 5))
@@ -248,7 +242,6 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
         df_all_scenarios = pd.DataFrame()
         combined_values = []
 
-        # === Collect values for binning ===
         for scenario_name, file_path in scenario_list:
             df_FLOWA, *_ = Import_OptiflowMR_geo(file_path)
             df_FLOWA["AAA"] = df_FLOWA["AAA"].astype(str).str.strip().replace(municipality_name_mapping)
@@ -271,21 +264,29 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
 
         df_all_scenarios.fillna(0, inplace=True)
 
-        # === Define Bins ===
         values = np.array(combined_values)
-        values = values[values > tolerance]  # exclude near-zero for binning
+        non_zero_values = values[values > tolerance]
 
-        if values.size == 0:
-            bin_edges = [0, 1, 2, 3, 4, 5]  # dummy bins
+        use_exact_values = len(np.unique(non_zero_values)) <= 4 and len(non_zero_values) > 0
+
+        if use_exact_values:
+            unique_vals = sorted(set(round(v, 6) for v in non_zero_values))
+            cmap = plt.get_cmap(cmap_name)
+            bin_colors = ['white'] + [cmap(i) for i in np.linspace(0.3, 0.95, len(unique_vals))]
+            value_to_bin = {0: 0}
+            for idx, val in enumerate(unique_vals):
+                value_to_bin[val] = idx + 1
         else:
-            bin_min = values.min()
-            bin_max = values.max()
-            bin_edges = np.linspace(bin_min, bin_max, 5)
+            values = values[values > tolerance]
+            if values.size == 0:
+                bin_edges = [0, 1, 2, 3, 4, 5]
+            else:
+                bin_min = values.min()
+                bin_max = values.max()
+                bin_edges = np.linspace(bin_min, bin_max, 5)
+            cmap = plt.get_cmap(cmap_name)
+            bin_colors = ['white'] + [cmap(x) for x in np.linspace(0.30, 0.95, 4)]
 
-        # === Setup colormap ===
-        cmap = plt.get_cmap(cmap_name)
-        bin_colors = ['white'] + [cmap(x) for x in np.linspace(0.30, 0.95, 4)]
-        # === Plotting ===
         for idx, (scenario_name, file_path) in enumerate(scenario_list):
             df_FLOWA, *_ = Import_OptiflowMR_geo(file_path)
             df_FLOWA["AAA"] = df_FLOWA["AAA"].astype(str).str.strip().replace(municipality_name_mapping)
@@ -301,30 +302,26 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
             aggregated_df = filtered_df.groupby("AAA", observed=False)["value"].sum().reset_index()
             aggregated_df["value"] = aggregated_df["value"].fillna(0)
 
-            # Assign bins
-            def assign_bin(v):
-                if v <= tolerance:
-                    return 0
-                for i in range(4):
-                    if bin_edges[i] <= v < bin_edges[i + 1]:
-                        return i + 1
-                return 4  # edge case: exactly max
+            if use_exact_values:
+                aggregated_df["bin"] = aggregated_df["value"].apply(lambda v: value_to_bin.get(round(v, 6), 0))
+            else:
+                def assign_bin(v):
+                    if v <= tolerance:
+                        return 0
+                    for i in range(4):
+                        if bin_edges[i] <= v < bin_edges[i + 1]:
+                            return i + 1
+                    return 4
+                aggregated_df["bin"] = aggregated_df["value"].apply(assign_bin)
 
-            aggregated_df["bin"] = aggregated_df["value"].apply(assign_bin)
-
-            # Merge with shapefile
             gdf = gpd.read_file(shapefile_path)
             gdf["LAU_NAME"] = gdf["LAU_NAME"].astype(str).str.strip()
             merged = gdf.merge(aggregated_df, left_on="LAU_NAME", right_on="AAA", how="left")
             merged["bin"] = merged["bin"].fillna(0).astype(int)
 
-            # Plot
-            ax = axes[idx]
-
-            # Reproject to EPSG:3857 for basemap compatibility
             merged = merged.to_crs(epsg=3857)
 
-            # Plot the thematic data
+            ax = axes[idx]
             merged.plot(
                 column="bin", ax=ax,
                 cmap=mcolors.ListedColormap(bin_colors),
@@ -332,10 +329,9 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
                 legend=False
             )
 
-            # Add OSM basemap
             ctx.add_basemap(
-                ax, 
-                source=ctx.providers.CartoDB.Positron,  # You can change to other providers
+                ax,
+                source=ctx.providers.CartoDB.Positron,
                 crs=merged.crs.to_string(),
                 attribution_size=6
             )
@@ -343,7 +339,6 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
             ax.set_aspect('equal')
             ax.set_axis_off()
 
-            # Rectangle frame
             xlim = ax.get_xlim()
             ylim = ax.get_ylim()
             rect = Rectangle(
@@ -357,7 +352,6 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
             )
             ax.add_patch(rect)
 
-            # Title
             ax.set_title(
                 scenario_name,
                 fontsize=12,
@@ -366,28 +360,30 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
                 pad=10
             )
 
-        # Global title
-        #fig.text(0.05, 0.95, plot_title, fontsize=16, family="Arial", ha='left', va='top')
+        # === Updated Custom Legend ===
+        if use_exact_values:
+            legend_labels = ["0"] + [f"{v:.3f}" for v in unique_vals]
+        else:
+            legend_labels = ["0"] + [f"{bin_edges[i]:.3f} – {bin_edges[i + 1]:.3f}" for i in range(4)]
 
-        # === Custom Legend ===
-        legend_labels = ["0"]
-        legend_labels += [f"{bin_edges[i]:.4f} – {bin_edges[i + 1]:.4f}" for i in range(4)]
         legend_patches = [Patch(facecolor=color, edgecolor='grey', label=label)
-                  for color, label in zip(bin_colors, legend_labels)]
+                          for color, label in zip(bin_colors, legend_labels)]
 
-        # Legend now sits vertically on the right side of the plot
         fig.legend(
             handles=legend_patches,
             title=f"{plot_title} {unit}",
-            loc='center right',  # Place legend on the right side
-            bbox_to_anchor=(0.72, 0.5),  # Adjust position to center vertically
+            loc='center right',
+            bbox_to_anchor=(0.73, 0.5),
             fontsize=10,
             title_fontsize=11,
-            ncol=1  # Ensure vertical layout
+            ncol=1
         )
 
-        plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])  # bottom margin increased for new legend space
-        output_path = f"C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_{plot_title}.pdf"
+        plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])
+
+        # === Remove spaces in filename ===
+        clean_title = plot_title.replace(" ", "_")
+        output_path = f"C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_{clean_title}.pdf"
         plt.savefig(output_path, format='pdf', bbox_inches='tight')
         plt.show()
 
@@ -635,53 +631,64 @@ optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_map
 # plt.show()
 
 # %%
+
+# 1. Load shapefile
 shapefile_path = r"C:\Users\sigur\OneDrive\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
 gdf = gpd.read_file(shapefile_path)
 
-# 3. Your data
+# 2. CO₂ sequestration data
 data = {
     "Municipality": ["Kalundborg", "Sorø", "Lolland", "Randers"],
     "Value": [10, 1, 7, 8],
 }
 df_CCSpot = pd.DataFrame(data)
 
+# 3. Harmonize names
 df_CCSpot["Municipality"] = df_CCSpot["Municipality"].replace(municipality_name_mapping)
 
-# 4. Merge data with GeoDataFrame
+# 4. Merge with shapefile
 merged = gdf.merge(df_CCSpot, left_on="LAU_NAME", right_on="Municipality", how="left")
 merged["Value"] = merged["Value"].fillna(0)
 
-# 5. Compute bin edges, ignoring zeros
-non_zero_values = merged.loc[merged["Value"] > 0, "Value"]
-if non_zero_values.empty:
-    bin_edges = [0, 1, 2, 3, 4]  # dummy fallback
+# 5. Legend logic: exact values if ≤ 4 unique non-zero
+tolerance = 1e-6
+non_zero_values = merged.loc[merged["Value"] > tolerance, "Value"]
+unique_vals = sorted(set(round(v, 6) for v in non_zero_values))
+
+use_exact_values = len(unique_vals) <= 4 and len(non_zero_values) > 0
+
+# 6. Bin or value mapping
+if use_exact_values:
+    value_to_bin = {0: 0}
+    for idx, val in enumerate(unique_vals):
+        value_to_bin[val] = idx + 1
+    merged["bin"] = merged["Value"].apply(lambda v: value_to_bin.get(round(v, 6), 0))
 else:
-    bin_min = non_zero_values.min()
-    bin_max = non_zero_values.max()
-    bin_edges = np.linspace(bin_min, bin_max, 4 + 1)  # 3 bins = 4 edges
+    if non_zero_values.empty:
+        bin_edges = [0, 1, 2, 3, 4, 5]  # fallback
+    else:
+        bin_edges = np.linspace(non_zero_values.min(), non_zero_values.max(), 5)
 
-# 6. Assign bin (0 for value==0, else 1–3)
-def assign_bin(v):
-    if v == 0:
-        return 0
-    for i in range(4):
-        if bin_edges[i] <= v < bin_edges[i+1]:
-            return i + 1
-    return 4  # exactly equal to max
+    def assign_bin(v):
+        if v <= tolerance:
+            return 0
+        for i in range(4):
+            if bin_edges[i] <= v < bin_edges[i+1]:
+                return i + 1
+        return 4  # if exactly equal to max
+    merged["bin"] = merged["Value"].apply(assign_bin)
 
-merged["bin"] = merged["Value"].apply(assign_bin)
-
-# 7. Define colormap (white for 0, then colormap shades)
+# 7. Colors
 cmap = plt.get_cmap("YlOrRd")
 bin_colors = ['white'] + [cmap(x) for x in np.linspace(0.3, 0.95, 4)]
 cmap_bins = mcolors.ListedColormap(bin_colors)
 
-# 8. Plot
-fig, ax = plt.subplots(1, 1, figsize=(20, 5))  # Match layout dimensions
+# 8. Plotting
+fig, ax = plt.subplots(1, 1, figsize=(20, 5))
 merged = merged.to_crs(epsg=3857)
+
 merged.plot(column="bin", cmap=cmap_bins, ax=ax, edgecolor="grey", linewidth=0.5)
 
-# Add basemap
 ctx.add_basemap(ax, source=ctx.providers.CartoDB.Positron, crs=merged.crs.to_string())
 
 # Rectangle frame
@@ -698,15 +705,22 @@ rect = Rectangle(
 )
 ax.add_patch(rect)
 
-# Create legend
-legend_labels = ["0"]
-legend_labels += [f"{bin_edges[i]:.2f} – {bin_edges[i+1]:.2f}" for i in range(4)]
-legend_patches = [Patch(facecolor=bin_colors[i], edgecolor='grey', label=legend_labels[i]) for i in range(5)]
+# 9. Legend
+if use_exact_values:
+    legend_labels = ["0"] + [str(v) for v in unique_vals]
+else:
+    legend_labels = ["0"] + [f"{bin_edges[i]:.2f} – {bin_edges[i+1]:.2f}" for i in range(4)]
+
+legend_patches = [
+    Patch(facecolor=bin_colors[i], edgecolor='grey', label=legend_labels[i])
+    for i in range(len(legend_labels))
+]
+
 fig.legend(
     handles=legend_patches,
-    title="[MTPA]",
+    title="Capacity [MTPA]",
     loc='center right',
-    bbox_to_anchor=(0.72, 0.5),
+    bbox_to_anchor=(0.68, 0.5),
     fontsize=10,
     title_fontsize=11,
     ncol=1
@@ -715,9 +729,57 @@ fig.legend(
 ax.set_aspect('equal')
 ax.set_axis_off()
 plt.title("Underground CO2 Sequestration Potential", fontsize=12, family="Arial", loc='center', pad=10)
-plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])  # Match layout
-plt.savefig("C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_CO2SeqPotInput.pdf", format='pdf', bbox_inches='tight' )
+plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])
+plt.savefig("C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_CO2SeqPotInput.pdf", format='pdf', bbox_inches='tight')
 plt.show()
 
 
 #%%
+Municipalities = ["Aalborg",
+"Esbjerg",
+"Odense",
+"Aarhus",
+"Koebenhavn",
+"Hvidovre"
+]
+
+# Harmonize names using the municipality_name_mapping
+Municipalities = [municipality_name_mapping.get(m, m) for m in Municipalities]
+
+# Create a column to highlight selected municipalities
+gdf["Highlight"] = gdf["LAU_NAME"].apply(lambda x: 1 if x in Municipalities else 0)
+
+# Plotting
+fig, ax = plt.subplots(1, 1, figsize=(20, 5))
+gdf = gdf.to_crs(epsg=3857)
+
+# Plot all municipalities in the fallback color
+fallback_color = 'white'
+gdf.plot(ax=ax, color=fallback_color, edgecolor="grey", linewidth=0.5)
+
+# Highlight selected municipalities in red
+gdf[gdf["Highlight"] == 1].plot(ax=ax, color="red", edgecolor="grey", linewidth=0.5)
+
+ctx.add_basemap(ax, source=ctx.providers.CartoDB.Positron, crs=gdf.crs.to_string())
+
+# Rectangle frame
+xlim = ax.get_xlim()
+ylim = ax.get_ylim()
+rect = Rectangle(
+    (xlim[0], ylim[0]),
+    xlim[1] - xlim[0],
+    ylim[1] - ylim[0],
+    linewidth=1.5,
+    edgecolor='black',
+    facecolor='none',
+    zorder=10
+)
+ax.add_patch(rect)
+
+# Layout adjustments
+ax.set_aspect('equal')
+ax.set_axis_off()
+plt.title("Potential CO2 Point Sources Municipalities", fontsize=12, family="Arial", loc='center', pad=10)
+plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])
+plt.savefig("C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\CO2PointSource_Municipalities.pdf", format='pdf', bbox_inches='tight')
+plt.show()

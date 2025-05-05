@@ -7,6 +7,9 @@ import gams.transfer as gt
 import gams
 import os
 import seaborn as sns
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+
 
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
@@ -42,8 +45,9 @@ def Import_allendofmodel(file_path):
      df_TRANSCOST = pd.DataFrame(df["TRANSCOST"].records)
      df_PROCDATA = pd.DataFrame(df["PROCDATA"].records)
      df_DISCOUNTRATE = pd.DataFrame(df["DISCOUNTRATE"].records)
+     df_TRANSDIST = pd.DataFrame(df["TRANSDIST"].records)
      
-     return df_SOSIBU2INDIC, df_TRANSCOST, df_PROCDATA, df_DISCOUNTRATE
+     return df_SOSIBU2INDIC, df_TRANSCOST, df_PROCDATA, df_DISCOUNTRATE, df_TRANSDIST
 
 
 def Import_OptiflowMR(file_path):
@@ -180,8 +184,8 @@ def Avg_yearly_biomass_price (scenario_path, year, country):
                If the input data is not properly formatted or contains invalid values.
           """
 
-    df_FLOWC,_, _ =Import_OptiflowMR(scenario_path)
-    df_SOSIBU2INDIC, _, _, _ = Import_allendofmodel(scenario_path)
+    df_FLOWC,_, df_VFLOWTRANS_Opti_A =Import_OptiflowMR(scenario_path)
+    df_SOSIBU2INDIC, df_TRANSCOST, _, _, df_TRANSDIST= Import_allendofmodel(scenario_path)
 
     df_biomass= df_FLOWC[(df_FLOWC["Y"] == year) & (df_FLOWC["CCC"] == country) & (df_FLOWC["IPROCTO"] == "Solid_Biomass") ]
     df_price = df_SOSIBU2INDIC[
@@ -205,17 +209,50 @@ def Avg_yearly_biomass_price (scenario_path, year, country):
     else:
           avg_price = numerator / denominator
 
+    df_transquantity = df_VFLOWTRANS_Opti_A[
+          (df_VFLOWTRANS_Opti_A["Y"] == year) &
+          (df_VFLOWTRANS_Opti_A["PROC"] != "ProcEximTruckC") 
+     ][["IAAAE", "IAAAI", "PROC", "value"]]
+
+    df_transcost = df_TRANSCOST[
+          (df_TRANSCOST["FLOWINDIC"] == "OPERATIONCOST")
+     ][["PROC", "value"]]
+
+     # Merge the two DataFrames on the 'PROC' column
+    df_transport = pd.merge(df_transquantity, df_transcost, on="PROC", how="left", suffixes=('_quantity', '_price'))
+
+     # Join df_transquantity with df_TRANSDIST on 'IAAAE' and 'IAAAI'
+    df_transport = pd.merge(df_transport, df_TRANSDIST, on=["IAAAE", "IAAAI", "PROC"], how="left")
+
+    df_transport = df_transport.rename(columns={'value': 'valuedist_dist'})
+
+    df_transport["value"] = df_transport["value_quantity"] * df_transport["value_price"] * df_transport["valuedist_dist"] * 10**6 # €/GJ/km * PJ * km *10^6 GJ/PJ = €
+
+    tran_numerator = df_transport["value"].sum()
+    tran_denominator = df_transport["value_quantity"].sum() #PJ
+
+    avg_transport_price = tran_numerator / tran_denominator if tran_denominator != 0 else 0 #€/PJ
+
+    avg_price_notransport = avg_price 
+
+    avg_price += avg_transport_price
+    
+    
+    
+
+
+    print(f"Average biomass price excluding transport costs in {country} for year {year}: {avg_price_notransport} €/PJ")
     print(f"Average biomass price in {country} for year {year}: {avg_price} €/PJ")
 
     return avg_price
 
-# Avg_yearly_biomass_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model",  "2050" , "DENMARK")
+#avg_price= Avg_yearly_biomass_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model",  "2050" , "DENMARK")
 
-
+#%%
 def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
     # Import data
     df_FLOWC, df_ECO_PROC_YCRAP, _ = Import_OptiflowMR(scenario_path)
-    _, _, df_PROCDATA, df_DISCOUNTRATE = Import_allendofmodel(scenario_path)
+    _, _, df_PROCDATA, df_DISCOUNTRATE, _ = Import_allendofmodel(scenario_path)
 
     # Dictionary to store results
     fuel_lifetime_tables = {}
@@ -465,6 +502,96 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
 
     return fuel_lifetime_tables, fuel_lcof
 
-first_try_table, first_try_lcof=LCOF_calculation(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", fuels, fuel_to_processes, "2050", "DENMARK")
 
 #%%
+
+# Calculate LCOF and store results
+first_try_table, first_try_lcof = LCOF_calculation(
+     r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", 
+     fuels, 
+     fuel_to_processes, 
+     "2050", 
+     "DENMARK"
+)
+
+fuel_group_name_map = {
+     ("AMMONIA_FLOW",): "Ammonia",
+     ("BIOGASOLINEFLOW_BJ_H2", "BIOJETFLOW_H2"): "Biofuels (Jet/Gasoline via H₂)",
+     ("EME_GASOLINE_FLOW", "EME_JET_FLOW", "EME_LPG_FLOW"): "E-Methanol Derived Fuels",
+}
+
+# Normalized name map (can expand this as needed)
+normalized_name_map = {
+      "AMMONIA_FLOW": "Ammonia",
+      "BIOGASOLINEFLOW_BJ_H2": "Biofuels (Jet/Gasoline via H₂)",
+      "EME_GASOLINE_FLOW": "E-Methanol Derived Fuels",
+}
+# Normalize keys
+def normalize_key(k):
+      if isinstance(k, (tuple, list)):
+            k = k[0]
+      return k.strip().upper()
+
+# Prepare plot data
+x_labels = []
+y_values = []
+
+for k, v in first_try_lcof.items():
+      norm_key = normalize_key(k)
+      readable = normalized_name_map.get(norm_key)
+      if not readable:
+            print(f"⚠️ Warning: Unmapped key '{norm_key}' — using fallback label.")
+            readable = norm_key.replace("_", " ").title()
+      x_labels.append(readable)
+      y_values.append(v)
+
+# Create Plotly bar chart
+fig = go.Figure()
+
+fig.add_trace(go.Bar(
+      x=x_labels,
+      y=y_values,
+      marker=dict(color='skyblue'),
+      name="LCOF"
+))
+
+fig.update_layout(
+      title="Levelized Cost of Fuel (LCOF) per Fuel Group",
+      xaxis=dict(
+            title="Fuel Group",
+            tickangle=0,  # Ensure labels are not tilted
+            showline=True,
+            linewidth=1,
+            linecolor='black',
+            tickfont=dict(size=12)
+      ),
+      yaxis=dict(
+            title="LCOF (€/GJ)",
+            showgrid=True,
+            gridcolor='lightgray',
+            zeroline=True,
+            zerolinecolor='lightgray',
+            zerolinewidth=0.6,
+            linecolor='black',
+            linewidth=1,
+            tickfont=dict(size=12)
+      ),
+      font=dict(
+            family="DejaVu Sans, sans-serif",
+            size=14,
+            color="black"
+      ),
+      plot_bgcolor='white',
+      paper_bgcolor='white',
+      margin=dict(l=60, r=30, t=80, b=80),
+      showlegend=False,  # Ensure the legend is displayed
+)
+
+# Add a full rectangle border around the plot
+fig.update_layout(
+      xaxis=dict(showline=True, mirror=True),  # Mirror x-axis lines
+      yaxis=dict(showline=True, mirror=True),  # Mirror y-axis lines
+)
+
+
+fig.show()
