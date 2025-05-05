@@ -22,10 +22,10 @@ import contextily as ctx
 
 # === List of Scenarios ===
 scenario_list = [
-     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case\model\Optiflow_MainResults.gdx"),
-     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
-     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
-     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL\model\Optiflow_MainResults.gdx"),
+     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model\Optiflow_MainResults.gdx"),
+#     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
+#     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
+#     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL\model\Optiflow_MainResults.gdx"),
     
 
 ]
@@ -40,12 +40,12 @@ plot_filters = [
     # ("Agricultural_Land", "C_Rich_Soils_Extraction_NOR")],
     # "Carbon Rich Soil Extraction", 1e-6, "Oranges", "[Mha]"),
 
-    ([("Agricultural_Land", "New_Productive_Forest_HOV"),
-    ("Agricultural_Land", "New_Productive_Forest_SJA"),
-    ("Agricultural_Land", "New_Productive_Forest_SYD"),
-    ("Agricultural_Land", "New_Productive_Forest_MID"),
-    ("Agricultural_Land", "New_Productive_Forest_NOR")],
-     "New Productive Forest", 1e-6, "Greens", "[Mha]"),
+    # ([("Agricultural_Land", "New_Productive_Forest_HOV"),
+    # ("Agricultural_Land", "New_Productive_Forest_SJA"),
+    # ("Agricultural_Land", "New_Productive_Forest_SYD"),
+    # ("Agricultural_Land", "New_Productive_Forest_MID"),
+    # ("Agricultural_Land", "New_Productive_Forest_NOR")],
+    #  "New Productive Forest", 1e-6, "Greens", "[Mha]"),
 
     # ([("Productive_Forest", "Untouched_Forest_HOV"),
     # ("Productive_Forest", "Untouched_Forest_SJA"),
@@ -56,10 +56,11 @@ plot_filters = [
 
     #  ([("Agricultural_Land", "Agriculture")],"Agricultural Land", "Greens", "[Mha]"),
     #  ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest", "Oranges", "[Mha]"),
-       ([("CO2_Source_DAC", "CO2_DAC_50"),("CO2_Source_Biogen", "CO2_BIOGEN_TOT"),("CO2_Source_Fossil", "CO2_FOS_TOT")],"Total CO2 Resource",1e-6, "Purples", "[Mton]"),
-      ([("Air_fuels_sum", "AirBuffer"),
-        ("Road_fuels_sum", "RoadBuffer"),
-        ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production",1e-10, "Reds", "[PJ]"),
+       ([("CO2_Source_DAC", "CO2_DAC_50")],"CO2 Captured by DAC",1e-6, "Purples", "[Mton]"),
+       ([("CO2_Source_Biogen", "CO2_BIOGEN_TOT")],"Biogenic CO2 from Point Sources",1e-6, "Greens", "[Mton]"),
+    #   ([("Air_fuels_sum", "AirBuffer"),
+    #     ("Road_fuels_sum", "RoadBuffer"),
+    #     ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production",1e-10, "Reds", "[PJ]"),
 
 
 
@@ -372,20 +373,22 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
         legend_labels = ["0"]
         legend_labels += [f"{bin_edges[i]:.4f} – {bin_edges[i + 1]:.4f}" for i in range(4)]
         legend_patches = [Patch(facecolor=color, edgecolor='grey', label=label)
-                          for color, label in zip(bin_colors, legend_labels)]
+                  for color, label in zip(bin_colors, legend_labels)]
 
-        # Legend now sits nicely closer to subplots
+        # Legend now sits vertically on the right side of the plot
         fig.legend(
             handles=legend_patches,
             title=f"{plot_title} {unit}",
-            loc='lower center',
-            bbox_to_anchor=(0.5, 0.05),  # Raised from -0.015 to 0.05
-            ncol=5,
+            loc='center right',  # Place legend on the right side
+            bbox_to_anchor=(0.72, 0.5),  # Adjust position to center vertically
             fontsize=10,
-            title_fontsize=11
+            title_fontsize=11,
+            ncol=1  # Ensure vertical layout
         )
 
         plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])  # bottom margin increased for new legend space
+        output_path = f"C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_{plot_title}.pdf"
+        plt.savefig(output_path, format='pdf', bbox_inches='tight')
         plt.show()
 
 
@@ -632,4 +635,89 @@ optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_map
 # plt.show()
 
 # %%
+shapefile_path = r"C:\Users\sigur\OneDrive\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
+gdf = gpd.read_file(shapefile_path)
 
+# 3. Your data
+data = {
+    "Municipality": ["Kalundborg", "Sorø", "Lolland", "Randers"],
+    "Value": [10, 1, 7, 8],
+}
+df_CCSpot = pd.DataFrame(data)
+
+df_CCSpot["Municipality"] = df_CCSpot["Municipality"].replace(municipality_name_mapping)
+
+# 4. Merge data with GeoDataFrame
+merged = gdf.merge(df_CCSpot, left_on="LAU_NAME", right_on="Municipality", how="left")
+merged["Value"] = merged["Value"].fillna(0)
+
+# 5. Compute bin edges, ignoring zeros
+non_zero_values = merged.loc[merged["Value"] > 0, "Value"]
+if non_zero_values.empty:
+    bin_edges = [0, 1, 2, 3, 4]  # dummy fallback
+else:
+    bin_min = non_zero_values.min()
+    bin_max = non_zero_values.max()
+    bin_edges = np.linspace(bin_min, bin_max, 4 + 1)  # 3 bins = 4 edges
+
+# 6. Assign bin (0 for value==0, else 1–3)
+def assign_bin(v):
+    if v == 0:
+        return 0
+    for i in range(4):
+        if bin_edges[i] <= v < bin_edges[i+1]:
+            return i + 1
+    return 4  # exactly equal to max
+
+merged["bin"] = merged["Value"].apply(assign_bin)
+
+# 7. Define colormap (white for 0, then colormap shades)
+cmap = plt.get_cmap("YlOrRd")
+bin_colors = ['white'] + [cmap(x) for x in np.linspace(0.3, 0.95, 4)]
+cmap_bins = mcolors.ListedColormap(bin_colors)
+
+# 8. Plot
+fig, ax = plt.subplots(1, 1, figsize=(20, 5))  # Match layout dimensions
+merged = merged.to_crs(epsg=3857)
+merged.plot(column="bin", cmap=cmap_bins, ax=ax, edgecolor="grey", linewidth=0.5)
+
+# Add basemap
+ctx.add_basemap(ax, source=ctx.providers.CartoDB.Positron, crs=merged.crs.to_string())
+
+# Rectangle frame
+xlim = ax.get_xlim()
+ylim = ax.get_ylim()
+rect = Rectangle(
+    (xlim[0], ylim[0]),
+    xlim[1] - xlim[0],
+    ylim[1] - ylim[0],
+    linewidth=1.5,
+    edgecolor='black',
+    facecolor='none',
+    zorder=10
+)
+ax.add_patch(rect)
+
+# Create legend
+legend_labels = ["0"]
+legend_labels += [f"{bin_edges[i]:.2f} – {bin_edges[i+1]:.2f}" for i in range(4)]
+legend_patches = [Patch(facecolor=bin_colors[i], edgecolor='grey', label=legend_labels[i]) for i in range(5)]
+fig.legend(
+    handles=legend_patches,
+    title="[MTPA]",
+    loc='center right',
+    bbox_to_anchor=(0.72, 0.5),
+    fontsize=10,
+    title_fontsize=11,
+    ncol=1
+)
+
+ax.set_aspect('equal')
+ax.set_axis_off()
+plt.title("Underground CO2 Sequestration Potential", fontsize=12, family="Arial", loc='center', pad=10)
+plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])  # Match layout
+plt.savefig("C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_CO2SeqPotInput.pdf", format='pdf', bbox_inches='tight' )
+plt.show()
+
+
+#%%

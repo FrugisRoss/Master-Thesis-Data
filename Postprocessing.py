@@ -17,6 +17,7 @@ from sklearn.metrics import r2_score
 import geopandas as gpd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import kaleido
 
 df_cap2020=pd.read_excel(r"C:\Users\sigur\OneDrive\DTU\Output Data\OutputCapacities.xlsx", sheet_name="2020 Capacities")
 
@@ -212,13 +213,14 @@ def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
     mask_iprocfrom_pellets = (df_FLOWC['IPROCFROM'] == 'Wood_Pellets_Gen')
 
     df_flowc_filtered = df_FLOWC[mask_iprocto | mask_iprocfrom_flow | mask_iprocfrom_pellets].copy()
+    df_flowc_filtered['value'] /= 3.6  
 
     # Filter df_F_CONS_YCRA
     df_f_cons_filtered = df_F_CONS_YCRA[
         (df_F_CONS_YCRA['C'] == 'DENMARK') &
-        (df_F_CONS_YCRA['FFF'].isin(['WOODCHIPS','STRAW','WOODPELLETS']))
+        (df_F_CONS_YCRA['FFF'].isin(['WOODCHIPS', 'STRAW', 'WOODPELLETS'])) &
+        (df_F_CONS_YCRA['TECH_TYPE'] != 'OPTIFLOW')
     ].copy()
-    df_f_cons_filtered['value'] *= 3.6
 
     # Assign categories
     df_f_cons_filtered['Category'] = 'CHP Generation'
@@ -227,7 +229,14 @@ def process_flows_and_consumption(df_FLOWC, df_F_CONS_YCRA):
     df_f_cons_filtered.loc[mask_ind,'Category'] = 'Industry Heating'
     df_f_cons_filtered.loc[mask_idv,'Category'] = 'Individual Users Heating'
 
+    print(df_flowc_filtered)
+    print(df_f_cons_filtered)
+
     return df_flowc_filtered, df_f_cons_filtered
+
+
+
+
 
 # ------------------------------------------------------------------------------
 # D) MULTI-SCENARIO PLOTTING FUNCTIONS (EXISTING PLOTS)
@@ -288,11 +297,13 @@ def multi_scenario_fuel_supply(
         ].copy()
         filtered_df['Demand'] = filtered_df['IPROCTO'].map(Demands_name)
         filtered_df['Fuel']   = filtered_df['IPROCFROM'].map(Fuels_name)
+        filtered_df['value'] /= 3.6  # Convert from PJ to Twh
         aggregated_df = filtered_df.groupby(['Demand','Fuel'])['value'].sum().reset_index()
 
         # 2) Resource use
         resource_df = df_FLOWC[df_FLOWC['IPROCFROM'].isin(Resource_name.keys())].copy()
         resource_df['Resource'] = resource_df['IPROCFROM'].map(Resource_name)
+        resource_df['value'] /= 3.6  # Convert from PJ to Twh
         aggregated_resource_df = resource_df.groupby('Resource')['value'].sum().reset_index()
 
         # Build x-axis categories
@@ -334,7 +345,7 @@ def multi_scenario_fuel_supply(
                     name=fuel,
                     marker=dict(
                         color=color_map.get(fuel, fallback_color),
-                        line=dict(color='black', width=1)  # Add black border to bars
+                    
                     ),
                     showlegend=show_legend,
                 ),
@@ -361,7 +372,7 @@ def multi_scenario_fuel_supply(
                     name=resource,
                     marker=dict(
                         color=color_map.get(resource, fallback_color),
-                        line=dict(color='black', width=1)  # Add black border to bars
+                        
                     ),
                     showlegend=show_legend,
                 ),
@@ -379,7 +390,7 @@ def multi_scenario_fuel_supply(
             row=1, col=c_col
         )
 
-        y_title = '[PJ]' if idx==0 else ''
+        y_title = '[TWh]' if idx==0 else ''
         fig.update_yaxes(
             title_text=y_title,
             showline=True,
@@ -394,7 +405,7 @@ def multi_scenario_fuel_supply(
             zerolinecolor='lightgray',
             tickmode='linear',
             tick0=0,
-            dtick=25,
+            dtick=5,
             row=1, col=c_col
         )
     
@@ -412,11 +423,16 @@ def multi_scenario_fuel_supply(
             borderwidth=1,
             font=dict(size=12)
         ),
-        margin=dict(l=50, r=20, t=80, b=60),
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
 
     fig.show()
-    #fig.write_image('Fuel_Supply.svg')
+    return fig
 
 def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by Scenario"):
     """
@@ -491,7 +507,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
                     name=cat,
                     marker=dict(
                         color=color_map.get(cat, fallback_color),
-                        line=dict(color="black", width=1)  # Add black border to bars
+                        
                     ),
                     showlegend=show_legend
                 ),
@@ -516,7 +532,7 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
                     name=cat,
                     marker=dict(
                         color=color_map.get(cat, fallback_color),
-                        line=dict(color="black", width=1)  # Add black border to bars
+                        
                     ),
                     showlegend=show_legend
                 ),
@@ -568,11 +584,17 @@ def multi_scenario_stacked_emissions(scenarios, plot_title="Stacked Emissions by
             borderwidth=1,
             font=dict(size=12)
         ),
-        margin=dict(l=50, r=20, t=80, b=60)
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
 
+
     fig.show()
-    # fig.write_image('CO2_Emissions.svg')
+    return fig
 
 def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumption Comparison"):
     fig = make_subplots(
@@ -693,7 +715,7 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
                     name=f,
                     marker=dict(
                         color=fuel_colors.get(f, fallback_color),
-                        line=dict(color='black', width=1)  # Add black border to bars
+                        
                     ),
                     showlegend=show_legend,
                 ),
@@ -710,7 +732,7 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
             row=1, col=c_col
         )
 
-        y_title = '[PJ]' if idx==0 else ''
+        y_title = '[TWh]' if idx==0 else ''
         fig.update_yaxes(
             title_text=y_title,
             showline=True,
@@ -738,11 +760,16 @@ def multi_scenario_biomass_consumption(scenarios, plot_title="Biomass Consumptio
             borderwidth=1,
             font=dict(size=12)
         ),
-        margin=dict(l=50, r=20, t=80, b=60)
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
 
     fig.show()
-    # fig.write_image('Biomass_Use.svg')
+    return fig
 
 
 def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="Installed Capacity By Scenario"):
@@ -858,7 +885,7 @@ def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="In
                     name=friendly_name,
                     marker=dict(
                         color=color,
-                        line=dict(color='black', width=1)  # Add black border to bars
+                        
                     ),
                     showlegend=show_legend,
                 ),
@@ -902,11 +929,18 @@ def multi_scenario_gcap_histogram(scenarios, country = 'DENMARK', plot_title="In
             borderwidth=1,
             font=dict(size=12)
         ),
-        margin=dict(l=50, r=20, t=80, b=60)
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
     fig.show()
 
-    # fig.write_image('G_CAP_YCRAF_Histogram.svg')
+    return fig
+
+
 def multi_scenario_gcap_histogram_with_exogenous(
     scenarios,df_cap2020,  country='DENMARK', plot_title="Installed Capacity By Scenario"
 ):
@@ -1049,7 +1083,7 @@ def multi_scenario_gcap_histogram_with_exogenous(
                     x=x_vals,
                     y=y_combined,
                     name=friendly_name,
-                    marker=dict(color=color, line=dict(color='black', width=1)),
+                    marker=dict(color=color ),
                     showlegend=show_legend
                 ),
                 row=1, col=idx + 1
@@ -1081,7 +1115,7 @@ def multi_scenario_gcap_histogram_with_exogenous(
                     xref=f'x{idx + 1}' if idx > 0 else 'x',
                     yref='paper',
                     x=(i * 2) + 0.5,
-                    y=-0.07,
+                    y=-0.12,
                     showarrow=False,
                     font=dict(size=14),
                 )
@@ -1102,6 +1136,7 @@ def multi_scenario_gcap_histogram_with_exogenous(
             row=1, col=idx + 1
         )
 
+
     fig.update_layout(  # unchanged layout
         title=plot_title if title else None,
         barmode='stack',
@@ -1114,11 +1149,17 @@ def multi_scenario_gcap_histogram_with_exogenous(
             borderwidth=1,
             font=dict(size=12)
         ),
-        margin=dict(l=50, r=20, t=80, b=60)
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
 
     fig.show()
-
+    
+    return fig
 
 
 
@@ -1247,8 +1288,7 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
                     y=y_vals,
                     name=friendly_name,
                     marker=dict(
-                        color=color,
-                        line=dict(color='black', width=1)  # Add black border to bars
+                        color=color
                     ),
                     showlegend=show_legend,
                 ),
@@ -1362,9 +1402,16 @@ def multi_scenario_pro_histogram(scenarios, country, plot_title="Energy Producti
         bgcolor='white',
         bordercolor='black',
         borderwidth=1,
-        )
+        ),
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
     fig.show()
+    return fig
 
 def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_title="Energy Imports and Exports by Scenario"):
     import os
@@ -1457,8 +1504,8 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
                         name='Imports',
                         marker=dict(
                             color=color_map['Import'],
-                            line=dict(color='black', width=1)  # Add black border to bars
                         ),
+                        width=0.5,  # Set bar thickness
                         showlegend=False if imp_shown else True,
                     ),
                     row=1, col=idx + 1
@@ -1473,9 +1520,9 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
                         y=[export_val],
                         name='Exports',
                         marker=dict(
-                            color=color_map['Export'],
-                            line=dict(color='black', width=1)  # Add black border to bars
+                            color=color_map['Export']
                         ),
+                        width=0.5,  # Set bar thickness
                         showlegend=False if exp_shown else True,
                     ),
                     row=1, col=idx + 1
@@ -1552,10 +1599,16 @@ def multi_scenario_impexp_histogram(scenarios, country, marker_length=110, plot_
             groupclick="toggleitem",
             traceorder="reversed"
         ),
-        margin=dict(l=50, r=20, t=80, b=60)
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
 
     fig.show()
+    return fig
 
     
 def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Production Fuel Share Histogram"):
@@ -1715,8 +1768,7 @@ def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Prod
                         y=fuel_shares,
                         name=friendly_name,
                         marker=dict(
-                            color=color,
-                            line=dict(color='black', width=1)  # Add black border to bars
+                            color=color
                         ),
                         # Only show legend once (in the first subplot) for each fuel.
                         showlegend=True if friendly_name not in encountered_legends else False,
@@ -1767,10 +1819,16 @@ def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Prod
             borderwidth=1,
             font=dict(size=12)
         ),
-        margin=dict(l=50, r=20, t=80, b=60)
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
     
     fig.show()
+    return fig
 
 
 def multi_scenario_objective_histogram_simple(scenario_list, country, plot_title="Objective Breakdown by Scenario"):
@@ -1823,7 +1881,6 @@ def multi_scenario_objective_histogram_simple(scenario_list, country, plot_title
                 y=grouped['value'],
                 marker=dict(
                     color='steelblue',
-                    line=dict(color='black', width=1)  # Add black border to bars
                 ),
                 showlegend=False
             ),
@@ -1858,10 +1915,16 @@ def multi_scenario_objective_histogram_simple(scenario_list, country, plot_title
         barmode='group',
         paper_bgcolor='white',
         plot_bgcolor='white',
-        margin=dict(l=50, r=20, t=80, b=60)
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
 
     fig.show()
+    return fig
 
 def stacked_objective_by_subcategory(scenario_list, country, plot_title="Stacked Objective Breakdown by Scenario"):
     """
@@ -1930,10 +1993,16 @@ def stacked_objective_by_subcategory(scenario_list, country, plot_title="Stacked
         plot_bgcolor='white',
         xaxis_title='Scenario',
         yaxis_title='M€',
-        margin=dict(l=50, r=20, t=80, b=60)
+        margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
 
     fig.show()
+    return fig
 
 
 def multi_scenario_objective(scenario_list,  plot_title="Objective Function Value"):
@@ -1989,14 +2058,19 @@ def multi_scenario_objective(scenario_list,  plot_title="Objective Function Valu
     font=dict(size=14),
     paper_bgcolor='white',
     plot_bgcolor='white',
-    margin=dict(l=50, r=20, t=80, b=60)
+    margin=dict(
+            l=50, 
+            r=20, 
+            t=80 if title else 40,  # Adjust top margin if title is not present
+            b=60
+        ),
     )
 
     fig.show()
 
 title=False
 
-multi_scenario_fuel_supply(
+fig=multi_scenario_fuel_supply(
     scenario_list,
     Demands_name,
     Fuels_name,
@@ -2004,16 +2078,19 @@ multi_scenario_fuel_supply(
     year=2050,
     plot_title="Fuels Demand Supply"
 )
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsDemandSupply_Base.pdf', engine='kaleido')
 
-multi_scenario_stacked_emissions(
+fig=multi_scenario_stacked_emissions(
     scenario_list,
     plot_title="CO2 Emissions "
 )
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\CO2_Base.pdf', engine='kaleido')
 
-multi_scenario_biomass_consumption(
+fig=multi_scenario_biomass_consumption(
     scenario_list,
     plot_title="Biomass Consumption"
 )
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\Biomass_Base.pdf', engine='kaleido')
 
 multi_scenario_gcap_histogram(
     scenario_list,
@@ -2028,6 +2105,16 @@ multi_scenario_gcap_histogram_with_exogenous(
     plot_title="Installed Capacity By Scenario"
 )
 
+# Save the plot to a file
+fig = multi_scenario_gcap_histogram_with_exogenous(
+    scenario_list,
+    df_cap2020, 
+    country='DENMARK', 
+    plot_title="Installed Capacity By Scenario"
+)
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\TotCapInst_Base.pdf', engine='kaleido')
+
+
 multi_scenario_pro_histogram(
     scenario_list,
     country='DENMARK',
@@ -2035,16 +2122,19 @@ multi_scenario_pro_histogram(
     demand_markers=False
 )
 
-multi_scenario_impexp_histogram(scenario_list,
+fig=multi_scenario_impexp_histogram(scenario_list,
                                 country='DENMARK', 
-                                marker_length=80,
+                                marker_length=100,
                                 plot_title="Imports and Exports by Scenario")
 
-multi_scenario_fuel_share_histogram(
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\ImpExp_Base.pdf', engine='kaleido')
+
+fig=multi_scenario_fuel_share_histogram(
     scenario_list,
     country='DENMARK',
     plot_title="Energy Production by Fuel"
 )
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\EnergySharebySource_Base.pdf', engine='kaleido')
 
 multi_scenario_objective_histogram_simple(
         scenario_list, 

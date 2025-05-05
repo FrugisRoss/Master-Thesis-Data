@@ -18,14 +18,13 @@ import gams
 
 ws = gams.GamsWorkspace()
 
-res = MainResults(files='MainResults.gdx', paths=  r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK_ModOut\model", scenario_names=['Base'])
+res = MainResults(files='MainResults.gdx', paths=  r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", scenario_names=['Base'])
 
-df = res.get_result('PRO_YCRAGF')
-print(df)
+
 
 
 
 #%%ng
-fig, ax = res.plot_profile(scenario='Base', year=2050,commodity='electricity')
+fig, ax = res.plot_profile(scenario='Base', year=2050, commodity='HYDROGEN', region='DENMARK')
                  
 # %%
