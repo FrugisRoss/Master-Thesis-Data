@@ -595,3 +595,56 @@ fig.update_layout(
 
 
 fig.show()
+
+#%%
+
+import pandas as pd
+import plotly.express as px
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+
+# Create the DataFrame
+data = {
+     'Category': ['Aviation Demand', 'Road Demand', 'Maritime Demand', 'Total Demand'],
+     'Biofuels Share [%]': [75.42, 85.42, 14.82, 43.84],
+     'E Fuels Share [%]': [24.58, 14.58, 85.18, 56.16]
+}
+
+df = pd.DataFrame(data)
+
+# Define colors
+colors = ['#2ecc71', '#1baee3']  # greenish for Biofuels, teal for E-Fuels
+
+# Create subplot layout: 1 row x 4 columns
+fig = make_subplots(
+     rows=1, cols=4,
+     specs=[[{'type':'domain'}, {'type':'domain'}, {'type':'domain'}, {'type':'domain'}]],
+     subplot_titles=df['Category']
+)
+
+# Add pie charts to each subplot
+for i, row in df.iterrows():
+     fig.add_trace(
+          go.Pie(
+               labels=['Biofuels', 'E-Fuels'],
+               values=[row['Biofuels Share [%]'], row['E Fuels Share [%]']],
+               marker=dict(colors=colors),
+               name=row['Category'],
+               textfont=dict(family='Arial', color='black')  # Ensure text is black
+          ),
+          row=1, col=i + 1
+     )
+
+# Update layout
+fig.update_layout(
+     font=dict(family='Arial', color='black'),  # Ensure all writings are black
+     legend=dict(
+          bordercolor='black',
+          borderwidth=1,
+          font=dict(family='Arial', color='black')  # Ensure legend text is black
+     )
+)
+
+fig.show()
+
+#%%
