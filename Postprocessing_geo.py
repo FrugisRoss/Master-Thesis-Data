@@ -54,13 +54,26 @@ plot_filters = [
     # ("Productive_Forest", "Untouched_Forest_NOR")],
     # "New Protected Forest",1e-6, "Purples", "[Mha]"),
 
-    #  ([("Agricultural_Land", "Agriculture")],"Agricultural Land", "Greens", "[Mha]"),
-    #  ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest", "Oranges", "[Mha]"),
-       ([("CO2_Source_DAC", "CO2_DAC_50")],"CO2 Captured by DAC",1e-6, "Purples", "[Mton]"),
-       ([("CO2_Source_Biogen", "CO2_BIOGEN_TOT")],"Biogenic CO2 from PS",1e-6, "Greens", "[Mton]"),
-    #   ([("Air_fuels_sum", "AirBuffer"),
-    #     ("Road_fuels_sum", "RoadBuffer"),
-    #     ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production",1e-10, "Reds", "[PJ]"),
+#      ([("Agricultural_Land", "Agriculture")],"Agricultural Land",1e-6, "Oranges", "[Mha]"),
+#      ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest",1e-6, "Greens", "[Mha]"),
+    #   ([("CO2_Source_DAC", "CO2_DAC_50")],"CO2 Captured by DAC",1e-6, "Purples", "[Mton]"),
+    #   ([("CO2_Source_Biogen", "CO2_BIOGEN_TOT")],"Biogenic CO2 from PS",1e-6, "Greens", "[Mton]"),
+      ([("Air_fuels_sum", "AirBuffer"),
+        ("Road_fuels_sum", "RoadBuffer"),
+        ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production",1e-10, "Reds", "[PJ]"),
+    #   ([("BioJet_H2_50", "BioGasoline_SUM"),
+    #     ("BioJet_H2_50", "BioJet_SUM"),
+    #     ],"Biofuel Production",1e-10, "Greens", "[PJ]"),
+      ([("EME_Upgrade_Sum", "EME_GasolineBuffer"),
+        ("EME_Upgrade_Sum", "EME_JetBuffer"),
+        ("EME_Upgrade_Sum", "EME_JetBuffer"),
+        #("Ammonia_Synthesis_50", "AmmoniaBuffer"),
+        ],"EME-fuels Production",1e-10, "Purples", "[PJ]"),
+
+        #([
+        # ("Ammonia_Synthesis_50", "AmmoniaBuffer"),
+        # ],"Ammonia Production",1e-10, "Blues", "[PJ]"),
+
 
 
 
@@ -383,7 +396,7 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
 
         # === Remove spaces in filename ===
         clean_title = plot_title.replace(" ", "_")
-        output_path = f"C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_{clean_title}.pdf"
+        output_path = f"C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_{clean_title}_Base.pdf"
         plt.savefig(output_path, format='pdf', bbox_inches='tight')
         plt.show()
 

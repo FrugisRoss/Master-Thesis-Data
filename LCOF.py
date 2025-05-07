@@ -33,7 +33,7 @@ fuels = [
 fuel_to_processes = [
     (["AMMONIA_FLOW"], ["Nitrogen_Production", "Ammonia_Synthesis_50"]),
     (["BIOGASOLINEFLOW_BJ_H2","BIOJETFLOW_H2"], ["BioJet_H2_50"]),
-    (["EME_GASOLINE_FLOW", "EME_JET_FLOW","EME_LPG_FLOW"], ["EMethanol_synthesis_50", "EMethanol_Upgrade_50", "CO2_Sto", "CO2_DAC_50"]),
+    (["EME_GASOLINE_FLOW", "EME_JET_FLOW","EME_LPG_FLOW"], ["EMethanol_synthesis_50", "EMethanol_Upgrade_50", "CO2_DAC_50"]),
 
 ]
 
@@ -56,8 +56,9 @@ def Import_OptiflowMR(file_path):
     df_FLOWC = pd.DataFrame(df["VFLOW_Opti_C"].records)
     df_ECO_PROC_YCRAP = pd.DataFrame(df["ECO_PROC_YCRAP"].records)
     df_VFLOWTRANS_Opti_A = pd.DataFrame(df["VFLOWTRANS_Opti_A"].records)
+    df_FLOWA = pd.DataFrame(df["VFLOW_Opti_A"].records)
 
-    return df_FLOWC, df_ECO_PROC_YCRAP, df_VFLOWTRANS_Opti_A
+    return df_FLOWC, df_ECO_PROC_YCRAP, df_VFLOWTRANS_Opti_A, df_FLOWA
 
 def Import_BalmorelMR(file_path):
     main_results_path = os.path.join(file_path, "MainResults.gdx")
@@ -131,8 +132,8 @@ def Avg_yearly_price(scenario_path, commodity, year, country):
      #print(merged)
 
      # Compute the weighted average
-     numerator = (merged['value_price'] * merged['value_demand']*10**6).sum()
-     denominator = merged['value_demand'].sum()
+     numerator = (merged['value_price'] * merged['value_demand']*10**6).sum() 
+     denominator = merged['value_demand'].sum()*3.6
      
      if denominator == 0:
           print("Denominator is zero, cannot compute average price.")  
@@ -184,7 +185,7 @@ def Avg_yearly_biomass_price (scenario_path, year, country):
                If the input data is not properly formatted or contains invalid values.
           """
 
-    df_FLOWC,_, df_VFLOWTRANS_Opti_A =Import_OptiflowMR(scenario_path)
+    df_FLOWC,_, df_VFLOWTRANS_Opti_A, _ =Import_OptiflowMR(scenario_path)
     df_SOSIBU2INDIC, df_TRANSCOST, _, _, df_TRANSDIST= Import_allendofmodel(scenario_path)
 
     df_biomass= df_FLOWC[(df_FLOWC["Y"] == year) & (df_FLOWC["CCC"] == country) & (df_FLOWC["IPROCTO"] == "Solid_Biomass") ]
@@ -251,7 +252,7 @@ def Avg_yearly_biomass_price (scenario_path, year, country):
 #%%
 def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
     # Import data
-    df_FLOWC, df_ECO_PROC_YCRAP, _ = Import_OptiflowMR(scenario_path)
+    df_FLOWC, df_ECO_PROC_YCRAP, _, df_FLOWA = Import_OptiflowMR(scenario_path)
     _, _, df_PROCDATA, df_DISCOUNTRATE, _ = Import_allendofmodel(scenario_path)
 
     # Dictionary to store results
@@ -285,29 +286,44 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
 
         #INVESTMENT COST DATA
 
-        df_ECO_PROC_YCRAP_investment= df_ECO_PROC_YCRAP[
-               (df_ECO_PROC_YCRAP["Y"] == year) & 
-               (df_ECO_PROC_YCRAP["C"] == country) & 
-               (df_ECO_PROC_YCRAP["PROC"].isin(processes)) & 
-               (df_ECO_PROC_YCRAP["COST_TYPE"] == "INVESTMENT_NA")
-          ]
-        
-        #FIXED O&M COST DATA
+        # Identify cities where all processes are present for this fuel group
+        # Filter df_FLOWA for year and relevant processes
+        filtered = df_FLOWA[
+        (df_FLOWA["Y"] == year) &
+        (df_FLOWA["IPROCFROM"].isin(processes))
+        ]
 
-        df_ECO_PROC_YCRAP_fixedop= df_ECO_PROC_YCRAP[
-               (df_ECO_PROC_YCRAP["Y"] == year) & 
-               (df_ECO_PROC_YCRAP["C"] == country) & 
-               (df_ECO_PROC_YCRAP["PROC"].isin(processes)) & 
-               (df_ECO_PROC_YCRAP["COST_TYPE"] == "FIXED")
-          ]
+        # Group by city and collect unique IPROCFROM values per city
+        cities_with_processes = filtered.groupby("AAA")["IPROCFROM"].apply(set)
+
+        # Keep only cities where all required processes are present
+        valid_cities = cities_with_processes[cities_with_processes.apply(lambda x: set(processes).issubset(x))].index.tolist()
+
+
+        # Apply this city filter to investment and fixed O&M costs
+        df_ECO_PROC_YCRAP_investment = df_ECO_PROC_YCRAP[
+            (df_ECO_PROC_YCRAP["Y"] == year) &
+            (df_ECO_PROC_YCRAP["C"] == country) &
+            (df_ECO_PROC_YCRAP["PROC"].isin(processes)) &
+            (df_ECO_PROC_YCRAP["COST_TYPE"] == "INVESTMENT_NA") &
+            (df_ECO_PROC_YCRAP["AAA"].isin(valid_cities))
+        ]
+
+        df_ECO_PROC_YCRAP_fixedop = df_ECO_PROC_YCRAP[
+            (df_ECO_PROC_YCRAP["Y"] == year) &
+            (df_ECO_PROC_YCRAP["C"] == country) &
+            (df_ECO_PROC_YCRAP["PROC"].isin(processes)) &
+            (df_ECO_PROC_YCRAP["COST_TYPE"] == "FIXED") &
+            (df_ECO_PROC_YCRAP["AAA"].isin(valid_cities))
+        ]
         
         #VARIABLE O&M COST DATA
 
-        df_FLOWC_variableop= df_FLOWC[
-               (df_FLOWC["Y"] == year) & 
-               (df_FLOWC["CCC"] == country) & 
-               (df_FLOWC["IPROCFROM"].isin(processes)) & 
-               (df_FLOWC["FLOW"] == "OPERATIONCOST")
+        df_FLOWA_variableop= df_FLOWA[
+               (df_FLOWA["Y"] == year) & 
+               (df_FLOWA["IPROCFROM"].isin(processes)) & 
+               (df_FLOWA["FLOW"] == "OPERATIONCOST") &
+               (df_FLOWA["AAA"].isin(valid_cities))
           ]
         
         #FEEDSTOCK DATA
@@ -323,55 +339,55 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
 
         for proc in processes:
             # Electricity
-            consumed_electricity = df_FLOWC.loc[
-                (df_FLOWC["Y"] == year) & 
-                (df_FLOWC["CCC"] == country) & 
-                (df_FLOWC["IPROCTO"] == proc) & 
-                (df_FLOWC["IPROCFROM"] == "ElecBuffer_GJ")
+            consumed_electricity = df_FLOWA.loc[
+                (df_FLOWA["Y"] == year) & 
+                (df_FLOWA["IPROCTO"] == proc) & 
+                (df_FLOWA["IPROCFROM"] == "ElecBuffer_GJ")&
+                (df_FLOWA["AAA"].isin(valid_cities))
             ]["value"].sum()
 
-            produced_electricity = df_FLOWC.loc[
-                (df_FLOWC["Y"] == year) & 
-                (df_FLOWC["CCC"] == country) & 
-                (df_FLOWC["IPROCFROM"] == proc) & 
-                (df_FLOWC["IPROCTO"] == "EL_Opti_to_Bal_Conv")
+            produced_electricity = df_FLOWA.loc[
+                (df_FLOWA["Y"] == year) & 
+                (df_FLOWA["IPROCFROM"] == proc) & 
+                (df_FLOWA["IPROCTO"] == "EL_Opti_to_Bal_Conv")&
+                (df_FLOWA["AAA"].isin(valid_cities))
             ]["value"].sum()
 
             net_consumed_electricity += consumed_electricity - produced_electricity
 
             # Hydrogen
-            consumed_h2 = df_FLOWC.loc[
-                (df_FLOWC["Y"] == year) & 
-                (df_FLOWC["CCC"] == country) & 
-                (df_FLOWC["IPROCTO"] == proc) & 
-                (df_FLOWC["IPROCFROM"] == "Hydrogen_Use")
+            consumed_h2 = df_FLOWA.loc[
+                (df_FLOWA["Y"] == year) & 
+                (df_FLOWA["IPROCTO"] == proc) & 
+                (df_FLOWA["IPROCFROM"] == "Hydrogen_Use") &
+                (df_FLOWA["AAA"].isin(valid_cities))
             ]["value"].sum()
 
             net_consumed_h2 += consumed_h2
 
             # Heat
-            consumed_heat = df_FLOWC.loc[
-                (df_FLOWC["Y"] == year) & 
-                (df_FLOWC["CCC"] == country) & 
-                (df_FLOWC["IPROCTO"] == proc) & 
-                (df_FLOWC["IPROCFROM"] == "HeatBuffer_GJ")
+            consumed_heat = df_FLOWA.loc[
+                (df_FLOWA["Y"] == year) &
+                (df_FLOWA["IPROCTO"] == proc) & 
+                (df_FLOWA["IPROCFROM"] == "HeatBuffer_GJ") &
+                (df_FLOWA["AAA"].isin(valid_cities))
             ]["value"].sum()
 
-            produced_heat = df_FLOWC.loc[
-                (df_FLOWC["Y"] == year) & 
-                (df_FLOWC["CCC"] == country) & 
-                (df_FLOWC["IPROCFROM"] == proc) & 
-                (df_FLOWC["IPROCTO"] == "Heat_Opti_to_Bal_Conv")
+            produced_heat = df_FLOWA.loc[
+                (df_FLOWA["Y"] == year) & 
+                (df_FLOWA["IPROCFROM"] == proc) & 
+                (df_FLOWA["IPROCTO"] == "Heat_Opti_to_Bal_Conv") &
+                (df_FLOWA["AAA"].isin(valid_cities))
             ]["value"].sum()
 
             net_consumed_heat += consumed_heat - produced_heat
 
             # Biomass
-            consumed_biomass = df_FLOWC.loc[
-                (df_FLOWC["Y"] == year) & 
-                (df_FLOWC["CCC"] == country) & 
-                (df_FLOWC["IPROCTO"] == proc) & 
-                (df_FLOWC["IPROCFROM"] == "Biomass_for_use")
+            consumed_biomass = df_FLOWA.loc[
+                (df_FLOWA["Y"] == year) & 
+                (df_FLOWA["IPROCTO"] == proc) & 
+                (df_FLOWA["IPROCFROM"] == "Biomass_for_use") &
+                (df_FLOWA["AAA"].isin(valid_cities))
             ]["value"].sum()
 
             net_consumed_biomass += consumed_biomass
@@ -397,12 +413,11 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         # Create a mask that checks for each (proc, flow) pair
         mask = False
         for proc, flow in filtered_pairs:
-               mask |= ((df_FLOWC["IPROCFROM"] == proc) & (df_FLOWC["FLOW"] == flow))
+               mask |= ((df_FLOWA["IPROCFROM"] == proc) & (df_FLOWA["FLOW"] == flow) & (df_FLOWA["AAA"].isin(valid_cities)))
 
         # Now select with additional conditions
-        yearly_fuel_production = df_FLOWC.loc[
-        (df_FLOWC["Y"] == year) &
-        (df_FLOWC["CCC"] == country) &
+        yearly_fuel_production = df_FLOWA.loc[
+        (df_FLOWA["Y"] == year) &
         mask
         ]["value"].sum()
 
@@ -454,7 +469,7 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
              if t==0:
                   table.at[t, "O&M [M€]"] = 0
              else:
-                  table.at[t, "O&M [M€]"] = df_ECO_PROC_YCRAP_fixedop["value"].sum() + df_FLOWC_variableop["value"].sum()
+                  table.at[t, "O&M [M€]"] = df_ECO_PROC_YCRAP_fixedop["value"].sum() + df_FLOWA_variableop["value"].sum()
 
             #FUEL COST COLUMN
              if t==0:
@@ -516,7 +531,7 @@ first_try_table, first_try_lcof = LCOF_calculation(
 
 fuel_group_name_map = {
      ("AMMONIA_FLOW",): "Ammonia",
-     ("BIOGASOLINEFLOW_BJ_H2", "BIOJETFLOW_H2"): "Biofuels (Jet/Gasoline via H₂)",
+     ("BIOGASOLINEFLOW_BJ_H2", "BIOJETFLOW_H2"): "Biofuels with H₂",
      ("EME_GASOLINE_FLOW", "EME_JET_FLOW", "EME_LPG_FLOW"): "E-Methanol Derived Fuels",
 }
 
@@ -551,19 +566,18 @@ fig = go.Figure()
 fig.add_trace(go.Bar(
       x=x_labels,
       y=y_values,
-      marker=dict(color='skyblue'),
+      marker=dict(color='#e3a41b'),
       name="LCOF"
 ))
 
 fig.update_layout(
-      title="Levelized Cost of Fuel (LCOF) per Fuel Group",
       xaxis=dict(
             title="Fuel Group",
             tickangle=0,  # Ensure labels are not tilted
             showline=True,
             linewidth=1,
             linecolor='black',
-            tickfont=dict(size=12)
+            tickfont=dict(size=14)  # Increased font size for fuel categories
       ),
       yaxis=dict(
             title="LCOF (€/GJ)",
@@ -587,17 +601,25 @@ fig.update_layout(
       showlegend=False,  # Ensure the legend is displayed
 )
 
+# Center the plot in the figure
+fig.update_layout(
+      autosize=False,
+      width=800,  # Adjust width as needed
+      height=600,  # Adjust height as needed
+      margin=dict(l=100, r=100, t=100, b=100),  # Center the plot by adjusting margins
+)
+
 # Add a full rectangle border around the plot
 fig.update_layout(
       xaxis=dict(showline=True, mirror=True),  # Mirror x-axis lines
       yaxis=dict(showline=True, mirror=True),  # Mirror y-axis lines
 )
 
-
 fig.show()
 
-#%%
+fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_Base.pdf", engine= 'kaleido') 
 
+#%%
 import pandas as pd
 import plotly.express as px
 from plotly.subplots import make_subplots
@@ -605,9 +627,9 @@ import plotly.graph_objects as go
 
 # Create the DataFrame
 data = {
-     'Category': ['Aviation Demand', 'Road Demand', 'Maritime Demand', 'Total Demand'],
-     'Biofuels Share [%]': [75.42, 85.42, 14.82, 43.84],
-     'E Fuels Share [%]': [24.58, 14.58, 85.18, 56.16]
+    'Category': ['Aviation Demand', 'Road Demand', 'Maritime Demand', 'Total Demand'],
+    'Biofuels Share [%]': [75.42, 85.42, 14.82, 43.84],
+    'E Fuels Share [%]': [24.58, 14.58, 85.18, 56.16]
 }
 
 df = pd.DataFrame(data)
@@ -617,34 +639,46 @@ colors = ['#2ecc71', '#1baee3']  # greenish for Biofuels, teal for E-Fuels
 
 # Create subplot layout: 1 row x 4 columns
 fig = make_subplots(
-     rows=1, cols=4,
-     specs=[[{'type':'domain'}, {'type':'domain'}, {'type':'domain'}, {'type':'domain'}]],
-     subplot_titles=df['Category']
+    rows=1, cols=4,
+    specs=[[{'type':'domain'}, {'type':'domain'}, {'type':'domain'}, {'type':'domain'}]],
+    subplot_titles=list(df['Category'])
 )
 
 # Add pie charts to each subplot
 for i, row in df.iterrows():
-     fig.add_trace(
-          go.Pie(
-               labels=['Biofuels', 'E-Fuels'],
-               values=[row['Biofuels Share [%]'], row['E Fuels Share [%]']],
-               marker=dict(colors=colors),
-               name=row['Category'],
-               textfont=dict(family='Arial', color='black')  # Ensure text is black
-          ),
-          row=1, col=i + 1
-     )
+    fig.add_trace(
+        go.Pie(
+            labels=['Biofuels', 'E-Fuels'],
+            values=[row['Biofuels Share [%]'], row['E Fuels Share [%]']],
+            marker=dict(colors=colors),
+            name=row['Category'],
+            textfont=dict(family='Arial', color='black'),
+            hole=0.3,
+            showlegend=(i == 0)  # Show legend only once
+        ),
+        row=1, col=i + 1
+    )
 
-# Update layout
+# Update layout for tight vertical space
 fig.update_layout(
-     font=dict(family='Arial', color='black'),  # Ensure all writings are black
-     legend=dict(
-          bordercolor='black',
-          borderwidth=1,
-          font=dict(family='Arial', color='black')  # Ensure legend text is black
-     )
+    height=300,  # Reduce vertical height
+    width=1200,  # Wider layout to fit 4 pies side by side
+    font=dict(family='Arial', color='black'),
+    legend=dict(
+        orientation='h',
+        x=0.5,
+        y=-0.2,
+        xanchor='center',
+        bordercolor='black',
+        borderwidth=1,
+        font=dict(family='Arial', color='black')
+    ),
+    margin=dict(l=20, r=20, t=30, b=80)  # Reduce top and bottom margin
 )
 
-fig.show()
+# Move subplot titles closer to the pies
+fig.update_annotations(dict(yshift=5))
 
+fig.show()
+fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsPie_Base.pdf", engine='kaleido')
 #%%
