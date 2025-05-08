@@ -19,7 +19,7 @@ pd.set_option('display.max_colwidth', None)
 
 
 scenario = [
-     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model")]
+     ("Base Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model"),]
 
 fuels = [
     ("Ammonia_Synthesis_50", "AMMONIA_FLOW"),
@@ -522,12 +522,116 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
 
 # Calculate LCOF and store results
 first_try_table, first_try_lcof = LCOF_calculation(
-     r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", 
+     scenario[0][1], 
      fuels, 
      fuel_to_processes, 
      "2050", 
      "DENMARK"
 )
+
+name_map = {
+    "Ammonia_Eff": "AMMONIA_FLOW",
+    "BioGasoline_Eff": "BIOGASOLINEFLOW_BJ_H2",
+    "EME_Gasoline_Eff": "EME_GASOLINE_FLOW",
+    "EME_LPG_Eff": "EME_LPG_FLOW",
+    "BioJet_Eff": "BIOJETFLOW_H2",
+    "EME_Jet_Eff": "EME_JET_FLOW"
+}
+
+sectors= { "Sea_fuels_sum":"Maritime",
+          "Air_fuels_sum":"Aviation",
+          "Road_fuels_sum":"Road",
+     }
+
+def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country):
+    import plotly.graph_objects as go
+    import pandas as pd
+
+    # Import data
+    df_FLOWC, _, _, _ = Import_OptiflowMR(scenario_path)
+
+    # Filter and map
+    filtered_df_FLOWC = df_FLOWC[
+        (df_FLOWC["Y"] == year) & 
+        (df_FLOWC["CCC"] == country) & 
+        (df_FLOWC["IPROCTO"].isin(sectors.keys()))
+    ].copy()
+
+    filtered_df_FLOWC["Sector"] = filtered_df_FLOWC["IPROCTO"].map(sectors)
+    filtered_df_FLOWC["Fuel"] = filtered_df_FLOWC["IPROCFROM"].map(name_map)
+
+    def assign_lcof(row):
+        for fuel_group, lcof_value in lcof_fuels.items():
+            if row["Fuel"] in fuel_group:
+                return lcof_value * 1e6
+        return None
+
+    filtered_df_FLOWC["Fuel LCOF"] = filtered_df_FLOWC.apply(assign_lcof, axis=1)
+
+    # Calculate sectoral LCOF
+    sector_lcof = {}
+    for sector in filtered_df_FLOWC["Sector"].unique():
+        sector_df = filtered_df_FLOWC[filtered_df_FLOWC["Sector"] == sector]
+        numerator = (sector_df["value"] * sector_df["Fuel LCOF"]).sum()
+        denominator = sector_df["value"].sum() * 1e6
+        sector_lcof[sector] = numerator / denominator if denominator != 0 else None
+
+    # Prepare data for plot
+    sectors = list(sector_lcof.keys())
+    lcof_values = list(sector_lcof.values())
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+          x=sectors,
+          y=lcof_values,
+          marker=dict(color='#1baee3'),  # Blueish color
+          name="LCOF"
+     ))
+
+    fig.update_layout(
+        xaxis=dict(
+            title="Sector",
+            tickangle=0,
+            showline=True,
+            linewidth=1.2,
+            linecolor='black',
+            mirror=True,
+            tickfont=dict(size=14)
+        ),
+        yaxis=dict(
+            title="LCOF (€/GJ)",
+            showgrid=True,
+            gridcolor='lightgray',
+            zeroline=True,
+            zerolinecolor='lightgray',
+            zerolinewidth=0.6,
+            linecolor='black',
+            linewidth=1.2,
+            mirror=True,
+            tickfont=dict(size=12)
+        ),
+        font=dict(
+            family="DejaVu Sans, sans-serif",
+            size=14,
+            color="black"
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        showlegend=False,
+        autosize=False,
+        width=800,
+        height=600,
+        margin=dict(l=100, r=100, t=30, b=80)  # No top title, just clean layout
+    )
+
+    fig.show()
+
+
+LCOF_bysector(scenario[0][1], first_try_lcof, sectors, name_map, "2050", "DENMARK")
+
+
+#%%
 
 fuel_group_name_map = {
      ("AMMONIA_FLOW",): "Ammonia",
@@ -617,7 +721,7 @@ fig.update_layout(
 
 fig.show()
 
-fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_Base.pdf", engine= 'kaleido') 
+fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_CO2.pdf", engine= 'kaleido') 
 
 #%%
 import pandas as pd

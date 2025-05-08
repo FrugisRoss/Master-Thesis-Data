@@ -30,7 +30,7 @@ print(df_cap2020.columns)
 scenario_list = [
      ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model"),
      #("Base Case DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK_ModOut\model"),
-    #  ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_RightOut\model"),
+      ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_RightOut\model"),
     #  #("CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_DK_ModOut\model"),
     #  ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_RightOut\model"),
      
@@ -2078,19 +2078,19 @@ fig=multi_scenario_fuel_supply(
     year=2050,
     plot_title="Fuels Demand Supply"
 )
-fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsDemandSupply_Base.pdf', engine='kaleido')
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsDemandSupply_CO2.pdf', engine='kaleido')
 
 fig=multi_scenario_stacked_emissions(
     scenario_list,
     plot_title="CO2 Emissions "
 )
-fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\CO2_Base.pdf', engine='kaleido')
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\CO2_CO2.pdf', engine='kaleido')
 
 fig=multi_scenario_biomass_consumption(
     scenario_list,
     plot_title="Biomass Consumption"
 )
-fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\Biomass_Base.pdf', engine='kaleido')
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\Biomass_CO2.pdf', engine='kaleido')
 
 multi_scenario_gcap_histogram(
     scenario_list,
@@ -2112,7 +2112,7 @@ fig = multi_scenario_gcap_histogram_with_exogenous(
     country='DENMARK', 
     plot_title="Installed Capacity By Scenario"
 )
-fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\TotCapInst_Base.pdf', engine='kaleido')
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\TotCapInst_CO2.pdf', engine='kaleido')
 
 
 multi_scenario_pro_histogram(
@@ -2122,19 +2122,21 @@ multi_scenario_pro_histogram(
     demand_markers=False
 )
 
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\Prod_CO2vsBase.pdf', engine='kaleido')
+
 fig=multi_scenario_impexp_histogram(scenario_list,
                                 country='DENMARK', 
                                 marker_length=100,
                                 plot_title="Imports and Exports by Scenario")
 
-fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\ImpExp_Base.pdf', engine='kaleido')
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\ImpExp_CO2.pdf', engine='kaleido')
 
 fig=multi_scenario_fuel_share_histogram(
     scenario_list,
     country='DENMARK',
     plot_title="Energy Production by Fuel"
 )
-fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\EnergySharebySource_Base.pdf', engine='kaleido')
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\EnergySharebySource_CO2.pdf', engine='kaleido')
 
 multi_scenario_objective_histogram_simple(
         scenario_list, 
