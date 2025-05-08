@@ -729,65 +729,65 @@ fig.show()
 fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_CO2.pdf", engine= 'kaleido') 
 
 #%%
-import pandas as pd
-import plotly.express as px
-from plotly.subplots import make_subplots
-import plotly.graph_objects as go
+# import pandas as pd
+# import plotly.express as px
+# from plotly.subplots import make_subplots
+# import plotly.graph_objects as go
 
-# Create the DataFrame
-data = {
-    'Category': ['Aviation Demand', 'Road Demand', 'Maritime Demand', 'Total Demand'],
-    'Biofuels Share [%]': [75.42, 85.42, 14.82, 43.84],
-    'E Fuels Share [%]': [24.58, 14.58, 85.18, 56.16]
-}
+# # Create the DataFrame
+# data = {
+#     'Category': ['Aviation Demand', 'Road Demand', 'Maritime Demand', 'Total Demand'],
+#     'Biofuels Share [%]': [75.42, 85.42, 14.82, 43.84],
+#     'E Fuels Share [%]': [24.58, 14.58, 85.18, 56.16]
+# }
 
-df = pd.DataFrame(data)
+# df = pd.DataFrame(data)
 
-# Define colors
-colors = ['#2ecc71', '#1baee3']  # greenish for Biofuels, teal for E-Fuels
+# # Define colors
+# colors = ['#2ecc71', '#1baee3']  # greenish for Biofuels, teal for E-Fuels
 
-# Create subplot layout: 1 row x 4 columns
-fig = make_subplots(
-    rows=1, cols=4,
-    specs=[[{'type':'domain'}, {'type':'domain'}, {'type':'domain'}, {'type':'domain'}]],
-    subplot_titles=list(df['Category'])
-)
+# # Create subplot layout: 1 row x 4 columns
+# fig = make_subplots(
+#     rows=1, cols=4,
+#     specs=[[{'type':'domain'}, {'type':'domain'}, {'type':'domain'}, {'type':'domain'}]],
+#     subplot_titles=list(df['Category'])
+# )
 
-# Add pie charts to each subplot
-for i, row in df.iterrows():
-    fig.add_trace(
-        go.Pie(
-            labels=['Biofuels', 'E-Fuels'],
-            values=[row['Biofuels Share [%]'], row['E Fuels Share [%]']],
-            marker=dict(colors=colors),
-            name=row['Category'],
-            textfont=dict(family='Arial', color='black'),
-            hole=0.3,
-            showlegend=(i == 0)  # Show legend only once
-        ),
-        row=1, col=i + 1
-    )
+# # Add pie charts to each subplot
+# for i, row in df.iterrows():
+#     fig.add_trace(
+#         go.Pie(
+#             labels=['Biofuels', 'E-Fuels'],
+#             values=[row['Biofuels Share [%]'], row['E Fuels Share [%]']],
+#             marker=dict(colors=colors),
+#             name=row['Category'],
+#             textfont=dict(family='Arial', color='black'),
+#             hole=0.3,
+#             showlegend=(i == 0)  # Show legend only once
+#         ),
+#         row=1, col=i + 1
+#     )
 
-# Update layout for tight vertical space
-fig.update_layout(
-    height=300,  # Reduce vertical height
-    width=1200,  # Wider layout to fit 4 pies side by side
-    font=dict(family='Arial', color='black'),
-    legend=dict(
-        orientation='h',
-        x=0.5,
-        y=-0.2,
-        xanchor='center',
-        bordercolor='black',
-        borderwidth=1,
-        font=dict(family='Arial', color='black')
-    ),
-    margin=dict(l=20, r=20, t=30, b=80)  # Reduce top and bottom margin
-)
+# # Update layout for tight vertical space
+# fig.update_layout(
+#     height=300,  # Reduce vertical height
+#     width=1200,  # Wider layout to fit 4 pies side by side
+#     font=dict(family='Arial', color='black'),
+#     legend=dict(
+#         orientation='h',
+#         x=0.5,
+#         y=-0.2,
+#         xanchor='center',
+#         bordercolor='black',
+#         borderwidth=1,
+#         font=dict(family='Arial', color='black')
+#     ),
+#     margin=dict(l=20, r=20, t=30, b=80)  # Reduce top and bottom margin
+# )
 
-# Move subplot titles closer to the pies
-fig.update_annotations(dict(yshift=5))
+# # Move subplot titles closer to the pies
+# fig.update_annotations(dict(yshift=5))
 
-fig.show()
-fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsPie_{scenario[0][0]}.pdf", engine='kaleido')
-#%%
+# fig.show()
+# fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsPie_{scenario[0][0]}.pdf", engine='kaleido')
+# #%%
