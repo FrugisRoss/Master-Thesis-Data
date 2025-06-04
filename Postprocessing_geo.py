@@ -22,10 +22,26 @@ import contextily as ctx
 
 # === List of Scenarios ===
 scenario_list = [
-     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model\Optiflow_MainResults.gdx"),
+#     ("Base Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_Rightout\model\Optiflow_MainResults.gdx"),
+#     ("BASE NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_nowoodpellets\model\Optiflow_MainResults.gdx"),
 #     ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
 #     ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC\model\Optiflow_MainResults.gdx"),
 #     ("Biodiversity+CO2 Fossil ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_FOSSIL\model\Optiflow_MainResults.gdx"),
+
+    #("CO2 BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model\Optiflow_MainResults.gdx"),
+    # ("CO2 BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_Modified\model\Optiflow_MainResults.gdx"),
+     #("CO2 FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_FOSSIL\model\Optiflow_MainResults.gdx"),
+#     ("CO2 NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_nowoodpellets\model\Optiflow_MainResults.gdx"),
+     #("CO2 FOSSIL NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_FOSSIL_nowoodpellets\model\Optiflow_MainResults.gdx"),
+    # ("CO2 BASELINE 150% LC", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_150LC\model\Optiflow_MainResults.gdx"),
+    #("CO2 BASELINE 300% LC", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_300LC\model\Optiflow_MainResults.gdx"),
+
+        ("BIODIVERSITY BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf\model\Optiflow_MainResults.gdx"),
+   
+    # ("BIODIVERSITY FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL\model\Optiflow_MainResults.gdx"),
+    #  ("BIODIVERSITY NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_nowoodpellets\model\Optiflow_MainResults.gdx"),
+    # ("BIODIVERSITY NWI FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL_nowoodpellets\model\Optiflow_MainResults.gdx"),
+     
     
 
 ]
@@ -33,12 +49,12 @@ scenario_list = [
 # === List of Filters to Apply ===
 
 plot_filters = [
-    # ([("Agricultural_Land", "C_Rich_Soils_Extraction_HOV"),
-    # ("Agricultural_Land", "C_Rich_Soils_Extraction_SJA"),
-    # ("Agricultural_Land", "C_Rich_Soils_Extraction_SYD"),
-    # ("Agricultural_Land", "C_Rich_Soils_Extraction_MID"),
-    # ("Agricultural_Land", "C_Rich_Soils_Extraction_NOR")],
-    # "Carbon Rich Soil Extraction", 1e-6, "Oranges", "[Mha]"),
+    ([("Agricultural_Land", "C_Rich_Soils_Extraction_HOV"),
+    ("Agricultural_Land", "C_Rich_Soils_Extraction_SJA"),
+    ("Agricultural_Land", "C_Rich_Soils_Extraction_SYD"),
+    ("Agricultural_Land", "C_Rich_Soils_Extraction_MID"),
+    ("Agricultural_Land", "C_Rich_Soils_Extraction_NOR")],
+    "Carbon Rich Soil Extraction", 1e-6, "Oranges", "[Mha]"),
 
     # ([("Agricultural_Land", "New_Productive_Forest_HOV"),
     # ("Agricultural_Land", "New_Productive_Forest_SJA"),
@@ -47,32 +63,32 @@ plot_filters = [
     # ("Agricultural_Land", "New_Productive_Forest_NOR")],
     #  "New Productive Forest", 1e-6, "Greens", "[Mha]"),
 
-    # ([("Productive_Forest", "Untouched_Forest_HOV"),
-    # ("Productive_Forest", "Untouched_Forest_SJA"),
-    # ("Productive_Forest", "Untouched_Forest_SYD"),
-    # ("Productive_Forest", "Untouched_Forest_MID"),
-    # ("Productive_Forest", "Untouched_Forest_NOR")],
-    # "New Protected Forest",1e-6, "Purples", "[Mha]"),
+    ([("Productive_Forest", "Untouched_Forest_HOV"),
+    ("Productive_Forest", "Untouched_Forest_SJA"),
+    ("Productive_Forest", "Untouched_Forest_SYD"),
+    ("Productive_Forest", "Untouched_Forest_MID"),
+    ("Productive_Forest", "Untouched_Forest_NOR")],
+    "New Protected Forest",1e-6, "Purples", "[Mha]"),
 
-#      ([("Agricultural_Land", "Agriculture")],"Agricultural Land",1e-6, "Oranges", "[Mha]"),
-#      ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest",1e-6, "Greens", "[Mha]"),
-    #   ([("CO2_Source_DAC", "CO2_DAC_50")],"CO2 Captured by DAC",1e-6, "Purples", "[Mton]"),
-    #   ([("CO2_Source_Biogen", "CO2_BIOGEN_TOT")],"Biogenic CO2 from PS",1e-6, "Greens", "[Mton]"),
-      ([("Air_fuels_sum", "AirBuffer"),
-        ("Road_fuels_sum", "RoadBuffer"),
-        ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production",1e-10, "Reds", "[PJ]"),
-    #   ([("BioJet_H2_50", "BioGasoline_SUM"),
-    #     ("BioJet_H2_50", "BioJet_SUM"),
+    #   ([("Agricultural_Land", "Agriculture")],"Agricultural Land",1e-4, "Oranges", "[Mha]"),
+    #   ([("Land_for_Wood_Production", "Wood_Production")],"Productive Forest",1e-4, "Greens", "[Mha]"),
+      #([("CO2_Source_DAC", "CO2_DAC_50")],"CO2 Captured by DAC",1e-6, "Purples", "[Mton]"),
+      #([("CO2_Source_Biogen", "CO2_BIOGEN_TOT")],"Biogenic CO2 from PS",1e-6, "Greens", "[Mton]"),
+    #   ([("Air_fuels_sum", "AirBuffer"),
+    #     ("Road_fuels_sum", "RoadBuffer"),
+    #     ("Sea_fuels_sum", "SeaBuffer")],"Renewable Fuel Production",1e-10, "Reds", "[PJ]"),
+    #   ([("BioGasoline_SUM", "BioGasolineBuffer"),
+    #     ( "BioJet_SUM", "BioJetBuffer"),
     #     ],"Biofuel Production",1e-10, "Greens", "[PJ]"),
-      ([("EME_Upgrade_Sum", "EME_GasolineBuffer"),
-        ("EME_Upgrade_Sum", "EME_JetBuffer"),
-        ("EME_Upgrade_Sum", "EME_JetBuffer"),
-        #("Ammonia_Synthesis_50", "AmmoniaBuffer"),
-        ],"EME-fuels Production",1e-10, "Purples", "[PJ]"),
+    #   ([("EME_Upgrade_Sum", "EME_GasolineBuffer"),
+    #     ("EME_Upgrade_Sum", "EME_JetBuffer"),
+    #     ("EME_Upgrade_Sum", "EME_JetBuffer"),
+    #     #("Ammonia_Synthesis_50", "AmmoniaBuffer"),
+    #     ],"EME-fuels Production",1e-10, "Purples", "[PJ]"),
 
-        #([
-        # ("Ammonia_Synthesis_50", "AmmoniaBuffer"),
-        # ],"Ammonia Production",1e-10, "Blues", "[PJ]"),
+    #     ([
+    #     ("Ammonia_Synthesis_50", "AmmoniaBuffer"),
+    #     ],"Ammonia Production",1e-10, "Blues", "[PJ]"),
 
 
 
@@ -248,7 +264,8 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
     or exact value mapping if ≤ 4 non-zero values.
     """
     for filter_pairs, plot_title, tolerance, cmap_name, unit in plot_filters:
-        fig, axes = plt.subplots(1, len(scenario_list), figsize=(20, 5))
+        n = len(scenario_list)
+        fig, axes = plt.subplots(1, n, figsize=(4 * n, 5), gridspec_kw={'wspace': 0.05})
         if not isinstance(axes, (list, np.ndarray)):
             axes = [axes]
 
@@ -375,9 +392,9 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
 
         # === Updated Custom Legend ===
         if use_exact_values:
-            legend_labels = ["0"] + [f"{v:.3f}" for v in unique_vals]
+            legend_labels = ["0"] + [f"{v:.4f}" for v in unique_vals]
         else:
-            legend_labels = ["0"] + [f"{bin_edges[i]:.3f} – {bin_edges[i + 1]:.3f}" for i in range(4)]
+            legend_labels = ["0"] + [f"{bin_edges[i]:.4f} – {bin_edges[i + 1]:.4f}" for i in range(4)]
 
         legend_patches = [Patch(facecolor=color, edgecolor='grey', label=label)
                           for color, label in zip(bin_colors, legend_labels)]
@@ -386,209 +403,234 @@ def optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name
             handles=legend_patches,
             title=f"{plot_title} {unit}",
             loc='center right',
-            bbox_to_anchor=(0.73, 0.5),
+            bbox_to_anchor=(1.60, 0.5),
             fontsize=10,
             title_fontsize=11,
             ncol=1
         )
 
-        plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])
+        # Updated layout with better subplot spacing
+        fig.subplots_adjust(left=0.05, right=0.90, top=0.90, bottom=0.1, wspace=0.05)
 
-        # === Remove spaces in filename ===
         clean_title = plot_title.replace(" ", "_")
-        output_path = f"C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_{clean_title}_Base.pdf"
+        output_path = f"C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Optiflow_{clean_title}_Biodivesity.pdf"
         plt.savefig(output_path, format='pdf', bbox_inches='tight')
         plt.show()
-
 
 optiflow_maps(scenario_list, plot_filters, shapefile_path, municipality_name_mapping)
 
  #%%
 
 
-# # --- 1) Municipality -> Region Dictionary (All 98 Municipalities) ---
-# municipality_to_region = {
-#     # Region Hovedstaden (29)
-#     "Albertslund": "Region Hovedstaden",
-#     "Allerød": "Region Hovedstaden",
-#     "Ballerup": "Region Hovedstaden",
-#     "Bornholm": "Region Hovedstaden",
-#     "Brøndby": "Region Hovedstaden",
-#     "Dragør": "Region Hovedstaden",
-#     "Egedal": "Region Hovedstaden",
-#     "Fredensborg": "Region Hovedstaden",
-#     "Frederiksberg": "Region Hovedstaden",
-#     "Frederikssund": "Region Hovedstaden",
-#     "Furesø": "Region Hovedstaden",
-#     "Gentofte": "Region Hovedstaden",
-#     "Gladsaxe": "Region Hovedstaden",
-#     "Glostrup": "Region Hovedstaden",
-#     "Gribskov": "Region Hovedstaden",
-#     "Halsnæs": "Region Hovedstaden",
-#     "Helsingør": "Region Hovedstaden",
-#     "Herlev": "Region Hovedstaden",
-#     "Hillerød": "Region Hovedstaden",
-#     "Hørsholm": "Region Hovedstaden",
-#     "Høje-Taastrup": "Region Hovedstaden",
-#     "Hvidovre": "Region Hovedstaden",
-#     "Ishøj": "Region Hovedstaden",
-#     "København": "Region Hovedstaden",
-#     "Lyngby-Taarbæk": "Region Hovedstaden",
-#     "Rudersdal": "Region Hovedstaden",
-#     "Rødovre": "Region Hovedstaden",
-#     "Tårnby": "Region Hovedstaden",
-#     "Vallensbæk": "Region Hovedstaden",
+# --- 1) Municipality -> Region Dictionary (All 98 Municipalities) ---
+municipality_to_region = {
+    # Region Hovedstaden (29)
+    "Albertslund": "Region Hovedstaden",
+    "Allerød": "Region Hovedstaden",
+    "Ballerup": "Region Hovedstaden",
+    "Bornholm": "Region Hovedstaden",
+    "Brøndby": "Region Hovedstaden",
+    "Dragør": "Region Hovedstaden",
+    "Egedal": "Region Hovedstaden",
+    "Fredensborg": "Region Hovedstaden",
+    "Frederiksberg": "Region Hovedstaden",
+    "Frederikssund": "Region Hovedstaden",
+    "Furesø": "Region Hovedstaden",
+    "Gentofte": "Region Hovedstaden",
+    "Gladsaxe": "Region Hovedstaden",
+    "Glostrup": "Region Hovedstaden",
+    "Gribskov": "Region Hovedstaden",
+    "Halsnæs": "Region Hovedstaden",
+    "Helsingør": "Region Hovedstaden",
+    "Herlev": "Region Hovedstaden",
+    "Hillerød": "Region Hovedstaden",
+    "Hørsholm": "Region Hovedstaden",
+    "Høje-Taastrup": "Region Hovedstaden",
+    "Hvidovre": "Region Hovedstaden",
+    "Ishøj": "Region Hovedstaden",
+    "København": "Region Hovedstaden",
+    "Lyngby-Taarbæk": "Region Hovedstaden",
+    "Rudersdal": "Region Hovedstaden",
+    "Rødovre": "Region Hovedstaden",
+    "Tårnby": "Region Hovedstaden",
+    "Vallensbæk": "Region Hovedstaden",
 
-#     # Region Sjælland (17)
-#     "Faxe": "Region Sjælland",
-#     "Greve": "Region Sjælland",
-#     "Guldborgsund": "Region Sjælland",
-#     "Holbæk": "Region Sjælland",
-#     "Kalundborg": "Region Sjælland",
-#     "Køge": "Region Sjælland",
-#     "Lejre": "Region Sjælland",
-#     "Lolland": "Region Sjælland",
-#     "Næstved": "Region Sjælland",
-#     "Odsherred": "Region Sjælland",
-#     "Ringsted": "Region Sjælland",
-#     "Roskilde": "Region Sjælland",
-#     "Slagelse": "Region Sjælland",
-#     "Solrød": "Region Sjælland",
-#     "Sorø": "Region Sjælland",
-#     "Stevns": "Region Sjælland",
-#     "Vordingborg": "Region Sjælland",
+    # Region Sjælland (17)
+    "Faxe": "Region Sjælland",
+    "Greve": "Region Sjælland",
+    "Guldborgsund": "Region Sjælland",
+    "Holbæk": "Region Sjælland",
+    "Kalundborg": "Region Sjælland",
+    "Køge": "Region Sjælland",
+    "Lejre": "Region Sjælland",
+    "Lolland": "Region Sjælland",
+    "Næstved": "Region Sjælland",
+    "Odsherred": "Region Sjælland",
+    "Ringsted": "Region Sjælland",
+    "Roskilde": "Region Sjælland",
+    "Slagelse": "Region Sjælland",
+    "Solrød": "Region Sjælland",
+    "Sorø": "Region Sjælland",
+    "Stevns": "Region Sjælland",
+    "Vordingborg": "Region Sjælland",
 
-#     # Region Syddanmark (22)
-#     "Assens": "Region Syddanmark",
-#     "Billund": "Region Syddanmark",
-#     "Esbjerg": "Region Syddanmark",
-#     "Fanø": "Region Syddanmark",
-#     "Fredericia": "Region Syddanmark",
-#     "Faaborg-Midtfyn": "Region Syddanmark",
-#     "Haderslev": "Region Syddanmark",
-#     "Kerteminde": "Region Syddanmark",
-#     "Kolding": "Region Syddanmark",
-#     "Langeland": "Region Syddanmark",
-#     "Middelfart": "Region Syddanmark",
-#     "Nordfyns": "Region Syddanmark",
-#     "Nyborg": "Region Syddanmark",
-#     "Odense": "Region Syddanmark",
-#     "Svendborg": "Region Syddanmark",
-#     "Sønderborg": "Region Syddanmark",
-#     "Tønder": "Region Syddanmark",
-#     "Varde": "Region Syddanmark",
-#     "Vejen": "Region Syddanmark",
-#     "Vejle": "Region Syddanmark",
-#     "Ærø": "Region Syddanmark",
-#     "Aabenraa": "Region Syddanmark",
+    # Region Syddanmark (22)
+    "Assens": "Region Syddanmark",
+    "Billund": "Region Syddanmark",
+    "Esbjerg": "Region Syddanmark",
+    "Fanø": "Region Syddanmark",
+    "Fredericia": "Region Syddanmark",
+    "Faaborg-Midtfyn": "Region Syddanmark",
+    "Haderslev": "Region Syddanmark",
+    "Kerteminde": "Region Syddanmark",
+    "Kolding": "Region Syddanmark",
+    "Langeland": "Region Syddanmark",
+    "Middelfart": "Region Syddanmark",
+    "Nordfyns": "Region Syddanmark",
+    "Nyborg": "Region Syddanmark",
+    "Odense": "Region Syddanmark",
+    "Svendborg": "Region Syddanmark",
+    "Sønderborg": "Region Syddanmark",
+    "Tønder": "Region Syddanmark",
+    "Varde": "Region Syddanmark",
+    "Vejen": "Region Syddanmark",
+    "Vejle": "Region Syddanmark",
+    "Ærø": "Region Syddanmark",
+    "Aabenraa": "Region Syddanmark",
 
-#     # Region Midtjylland (19)
-#     "Favrskov": "Region Midtjylland",
-#     "Hedensted": "Region Midtjylland",
-#     "Herning": "Region Midtjylland",
-#     "Holstebro": "Region Midtjylland",
-#     "Horsens": "Region Midtjylland",
-#     "Ikast-Brande": "Region Midtjylland",
-#     "Lemvig": "Region Midtjylland",
-#     "Norddjurs": "Region Midtjylland",
-#     "Odder": "Region Midtjylland",
-#     "Randers": "Region Midtjylland",
-#     "Ringkøbing-Skjern": "Region Midtjylland",
-#     "Samsø": "Region Midtjylland",
-#     "Silkeborg": "Region Midtjylland",
-#     "Skanderborg": "Region Midtjylland",
-#     "Skive": "Region Midtjylland",
-#     "Struer": "Region Midtjylland",
-#     "Syddjurs": "Region Midtjylland",
-#     "Viborg": "Region Midtjylland",
-#     "Aarhus": "Region Midtjylland",
+    # Region Midtjylland (19)
+    "Favrskov": "Region Midtjylland",
+    "Hedensted": "Region Midtjylland",
+    "Herning": "Region Midtjylland",
+    "Holstebro": "Region Midtjylland",
+    "Horsens": "Region Midtjylland",
+    "Ikast-Brande": "Region Midtjylland",
+    "Lemvig": "Region Midtjylland",
+    "Norddjurs": "Region Midtjylland",
+    "Odder": "Region Midtjylland",
+    "Randers": "Region Midtjylland",
+    "Ringkøbing-Skjern": "Region Midtjylland",
+    "Samsø": "Region Midtjylland",
+    "Silkeborg": "Region Midtjylland",
+    "Skanderborg": "Region Midtjylland",
+    "Skive": "Region Midtjylland",
+    "Struer": "Region Midtjylland",
+    "Syddjurs": "Region Midtjylland",
+    "Viborg": "Region Midtjylland",
+    "Aarhus": "Region Midtjylland",
 
-#     # Region Nordjylland (11)
-#     "Brønderslev": "Region Nordjylland",
-#     "Frederikshavn": "Region Nordjylland",
-#     "Hjørring": "Region Nordjylland",
-#     "Jammerbugt": "Region Nordjylland",
-#     "Læsø": "Region Nordjylland",
-#     "Mariagerfjord": "Region Nordjylland",
-#     "Morsø": "Region Nordjylland",
-#     "Rebild": "Region Nordjylland",
-#     "Thisted": "Region Nordjylland",
-#     "Vesthimmerlands": "Region Nordjylland",
-#     "Aalborg": "Region Nordjylland",
-# }
+    # Region Nordjylland (11)
+    "Brønderslev": "Region Nordjylland",
+    "Frederikshavn": "Region Nordjylland",
+    "Hjørring": "Region Nordjylland",
+    "Jammerbugt": "Region Nordjylland",
+    "Læsø": "Region Nordjylland",
+    "Mariagerfjord": "Region Nordjylland",
+    "Morsø": "Region Nordjylland",
+    "Rebild": "Region Nordjylland",
+    "Thisted": "Region Nordjylland",
+    "Vesthimmerlands": "Region Nordjylland",
+    "Aalborg": "Region Nordjylland",
+}
 
-# # --- 2) Region-Level Land Costs [M€/ha] (Example values) ---
-# region_land_costs_m_eur_ha = {
-#     "Region Hovedstaden": 0.0322,
-#     "Region Sjælland": 0.01745,
-#     "Region Syddanmark": 0.0305,
-#     "Region Midtjylland": 0.0283,
-#     "Region Nordjylland": 0.0227
-# }
+# --- 2) Region-Level Land Costs [M€/ha] (Example values) ---
+region_land_costs_m_eur_ha = {
+    "Region Hovedstaden": 0.0322,
+    "Region Sjælland": 0.01745,
+    "Region Syddanmark": 0.0305,
+    "Region Midtjylland": 0.0283,
+    "Region Nordjylland": 0.0227
+}
 
-# # Multiply by 1000 to get k€/ha
-# region_land_costs_k_eur_ha = {
-#     region: cost * 1000 for region, cost in region_land_costs_m_eur_ha.items()
-# }
+# Multiply by 1000 to get k€/ha
+region_land_costs_k_eur_ha = {
+    region: cost * 1000 for region, cost in region_land_costs_m_eur_ha.items()
+}
 
-# # --- 3) Load the municipality shapefile ---
-# shapefile_path = r"C:\Users\sigur\OneDrive\DTU\Input Data\QGIS data\LAU_RG_01M_2021_3035.shp\Administrative_DK.shp"
-# gdf = gpd.read_file(shapefile_path)
+# Load and clean municipality shapefile
+gdf = gpd.read_file(shapefile_path)
+gdf["LAU_NAME"] = gdf["LAU_NAME"].astype(str).str.strip()
+gdf["Region"] = gdf["LAU_NAME"].map(municipality_to_region)
 
-# # The column in your shapefile that holds the municipality name
-# column_municipality_gdf = "LAU_NAME"
+# Dissolve by region
+gdf_regions = gdf.dissolve(by="Region", as_index=False)
 
-# # Make sure the municipality names match the dictionary keys (strip whitespace, etc.)
-# gdf[column_municipality_gdf] = gdf[column_municipality_gdf].astype(str).str.strip()
+# Add land costs
+df_region_costs = pd.DataFrame(list(region_land_costs_k_eur_ha.items()), columns=["Region", "LandCost"])
+gdf_regions = gdf_regions.merge(df_region_costs, on="Region", how="left")
+gdf_regions["LandCost"] = gdf_regions["LandCost"].fillna(0)
 
-# # --- 4) Map each municipality to its region ---
-# gdf["Region"] = gdf[column_municipality_gdf].map(municipality_to_region)
+# Project to Web Mercator
+gdf_regions = gdf_regions.to_crs(epsg=3857)
 
-# # --- 5) Dissolve by region to create a single polygon per region ---
-# gdf_regions = gdf.dissolve(by="Region", as_index=False)
+# Sample data
+landcost_values = gdf_regions["LandCost"]
 
-# # --- 6) Attach the land costs (now in k€/ha) to the dissolved regions ---
-# df_region_costs = pd.DataFrame(list(region_land_costs_k_eur_ha.items()), columns=["Region", "LandCost"])
-# gdf_regions = gdf_regions.merge(df_region_costs, on="Region", how="left")
+# Get 5 unique land cost values (non-zero), sorted
+unique_vals = sorted(landcost_values[landcost_values > 0].unique())[:5]
+unique_vals = [0] + unique_vals  # include 0 for white
 
-# # Any region not found in region_land_costs would get NaN; fill with 0 if desired
-# gdf_regions["LandCost"] = gdf_regions["LandCost"].fillna(0)
+# Assign colors
+cmap = plt.cm.Oranges
+colors = ['white'] + [cmap(i) for i in np.linspace(0.3, 0.95, len(unique_vals) - 1)]
 
-# # --- 7) Plot the map, coloring each region by LandCost (k€/ha) ---
-# fig, ax = plt.subplots(figsize=(8, 8))
+# Create a color map from exact values
+value_color_map = dict(zip(unique_vals, colors))
 
-# # Determine min/max for color scaling
-# min_val = gdf_regions["LandCost"].min()
-# max_val = gdf_regions["LandCost"].max()
-# norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
+# Map colors to LandCost
+gdf_regions["color"] = gdf_regions["LandCost"].map(lambda x: value_color_map.get(x, 'white'))
 
-# # Choose a colormap
-# cmap = plt.cm.Oranges
+# --- Plot ---
+fig, ax = plt.subplots(figsize=(20, 5))
 
-# # Plot the region polygons
-# gdf_regions.plot(
-#     column="LandCost",
-#     cmap=cmap,
-#     linewidth=0.5,
-#     edgecolor="black",
-#     legend=False,  # We'll add a custom colorbar below
-#     ax=ax,
-#     norm=norm
-# )
+# Plot regions with fill color and grey border
+gdf_regions.plot(color=gdf_regions["color"], edgecolor="grey", linewidth=0.5, ax=ax)
 
-# ax.set_title("Cost of Land [k€/ha] by Region", fontsize=14)
-# ax.set_axis_off()
+# Add background map
+ctx.add_basemap(ax, source=ctx.providers.CartoDB.Positron, crs=gdf_regions.crs.to_string())
 
-# # Add a colorbar
-# sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-# sm.set_array([])
-# cbar = fig.colorbar(sm, ax=ax, fraction=0.03, pad=0.04)
-# cbar.set_label("Land Cost [k€/ha]", fontsize=12)
+# Rectangle frame around the full extent
+xlim = ax.get_xlim()
+ylim = ax.get_ylim()
+rect = Rectangle(
+    (xlim[0], ylim[0]),
+    xlim[1] - xlim[0],
+    ylim[1] - ylim[0],
+    linewidth=1.5,
+    edgecolor='black',
+    facecolor='none',
+    zorder=10
+)
+ax.add_patch(rect)
 
-# plt.tight_layout()
-# plt.show()
+# Turn off axis
+ax.set_axis_off()
 
-# # %%
+# Create legend with exact values
+legend_labels = [f"{val:.2f}" for val in unique_vals]
+legend_patches = [
+    Patch(facecolor=value_color_map[val], edgecolor='black', label=label)
+    for val, label in zip(unique_vals, legend_labels)
+]
+
+# Add bordered legend closer to the plot
+legend = fig.legend(
+    handles=legend_patches,
+    loc='upper left',
+    bbox_to_anchor=(0.63, 0.75),
+    title="Land Cost [k€/ha]",
+    title_fontsize=11,
+    frameon=True,         # <== Adds a border    # <== Makes the border black
+    fontsize=10
+)
+legend.get_frame().set_linewidth(1.2)
+
+plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])
+
+plt.savefig("C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\Regional_Land_Costs.pdf", format='pdf', bbox_inches='tight')
+plt.show()
+
+# %%
 # df_FLOWA, df_FLOWC, df_EMI_YCRAG, df_EMI_PROC=Import_OptiflowMR_geo(r"C:\Users\sigur\OneDrive - Politecnico di Milano\polimi\magistrale\DTU\Run_on_HPC\Balmorel\Base_Case\model\Optiflow_MainResults.gdx")
 
 # # Filter the DataFrame for the specified IPROCFROM values
@@ -796,3 +838,5 @@ plt.title("Potential CO2 Point Sources Municipalities", fontsize=12, family="Ari
 plt.tight_layout(rect=[0.05, 0.1, 0.95, 0.92])
 plt.savefig("C:\\Users\\sigur\\OneDrive\\DTU\\Pictures for report polimi\\Results\\CO2PointSource_Municipalities.pdf", format='pdf', bbox_inches='tight')
 plt.show()
+
+#%%

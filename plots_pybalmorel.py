@@ -25,6 +25,6 @@ res = MainResults(files='MainResults.gdx', paths=  r"C:\Users\sigur\OneDrive\DTU
 
 
 #%%ng
-fig, ax = res.plot_profile(scenario='Base', year=2050, commodity='HYDROGEN', region='DENMARK')
+fig, ax = res.plot_profile(scenario='Base', year=2050, commodity='ELECTRICITY', region='DENMARK')
                  
 # %%

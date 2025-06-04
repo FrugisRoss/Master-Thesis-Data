@@ -18,8 +18,11 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 import kaleido
+import math
 
-df_cap2020=pd.read_excel(r"C:\Users\sigur\OneDrive\DTU\Output Data\OutputCapacities.xlsx", sheet_name="2020 Capacities")
+
+
+df_cap2020=pd.read_excel(r"C:\Users\sigur\OneDrive\DTU\Output Data\Base\OutputCapacities.xlsx", sheet_name="2020 Capacities")
 
 print(df_cap2020.columns)
 #%%
@@ -28,11 +31,30 @@ print(df_cap2020.columns)
 # Each scenario is a tuple: (scenario_name, scenario_path)
 # ------------------------------------------------------------------------------
 scenario_list = [
-     ("Base Case", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model"),
-     #("Base Case DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_DK_ModOut\model"),
-      ("CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_RightOut\model"),
-    #  #("CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_DK_ModOut\model"),
-    #  ("Biodiversity+CO2 Scenario", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_RightOut\model"),
+     
+     ("BASE BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model"),
+    #  ("BASE FOSSIL ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_FOSSIL\model"),
+    #  ("BASE NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_nowoodpellets\model"),
+    #  ("BASE FOSSIL NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_FOSSIL_nowoodpellets\model"),
+     
+
+
+   ("CO2 BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model"),
+    # ("CO2 BASELINE 75% PROD", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_75NPF\model"),
+    # ("CO2 BASELINE 50% PROD", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_50NPF\model"),
+    # ("CO2 BASELINE 25% PROD", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_25NPF\model"),
+    #  ("CO2 FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_FOSSIL\model"),
+    #  ("CO2 NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_nowoodpellets\model"),
+    #  ("CO2 FOSSIL NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_FOSSIL_nowoodpellets\model"),
+
+    #("CO2 BASELINE 150% LC", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_150LC\model"),
+    #("CO2 BASELINE 300% LC", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_300LC\model"),
+    
+ ("BIODIVERSITY BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf\model"),
+   
+     #("BIODIVERSITY FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL\model"),
+     # ("BIODIVERSITY NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_nowoodpellets\model"),
+  #("BIODIVERSITY NWI FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL_nowoodpellets\model"),
      
      
     #  #("Biodiversity+CO2 Scenario DK", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_DK_ModOut\model"),     
@@ -329,12 +351,13 @@ def multi_scenario_fuel_supply(
             y_vals = []
             for xcat in x_categories:
                 if xcat in demands_unique:
-                    y_vals.append(demand_fuel_map[xcat].get(fuel, 0.0))
+                    value = demand_fuel_map[xcat].get(fuel, 0.0)
+                    y_vals.append(value if value >= 0.001 else 0.0)  # Filter values below 0.001
                 else:
                     y_vals.append(0.0)
 
             # Decide if we show the legend for this fuel
-            show_legend = (fuel not in encountered_legends)
+            show_legend = (fuel not in encountered_legends and sum(y_vals) > 0)
             if show_legend:
                 encountered_legends.add(fuel)
 
@@ -357,11 +380,12 @@ def multi_scenario_fuel_supply(
             y_vals = []
             for xcat in x_categories:
                 if xcat == resource:
-                    y_vals.append(-resource_map[resource])
+                    value = resource_map[resource]
+                    y_vals.append(-value if value >= 0.001 else 0.0)  # Filter values below 0.001
                 else:
                     y_vals.append(0)
-
-            show_legend = (resource not in encountered_legends)
+                    # Only show legend for each resource once across all scenarios
+                    show_legend = (resource not in encountered_legends and sum(y_vals) > 0)
             if show_legend:
                 encountered_legends.add(resource)
 
@@ -1651,7 +1675,7 @@ def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Prod
     """
 
     # Threshold for plotting share values.
-    threshold = 10e-4  # 0.1
+    threshold = 10e-5  # 0.1
 
     # Global mapping: fuel code -> friendly name
     fuel_name_map = {
@@ -1686,7 +1710,7 @@ def multi_scenario_fuel_share_histogram(scenario_list, country, plot_title="Prod
         'Light Oil': '#e377c2',        # pink
         'Coal': '#7f7f7f',             # grey
         'Lignite': '#bcbd22',          # olive
-        'Woodchips': '#8c6d31',        # darker brown
+        'Woodchips': '#e7ba52',        # darker brown
         'Wood Pellets': '#b5cf6b',     # light green
         'Fuel Oil': '#e7ba52',         # mustard
         'Wood': '#cedb9c',             # pale green
@@ -2000,8 +2024,14 @@ def stacked_objective_by_subcategory(scenario_list, country, plot_title="Stacked
             b=60
         ),
     )
-
+    
     fig.show()
+    # Print the sum of SUBCATEGORY values for each scenario
+    for scenario_name in scenario_names:
+        total = sum(scenario_data.get(scenario_name, {}).get(subcat, 0) for subcat in all_subcategories)
+        print(f"Total for scenario '{scenario_name}': {total}")
+
+    
     return fig
 
 
@@ -2068,6 +2098,141 @@ def multi_scenario_objective(scenario_list,  plot_title="Objective Function Valu
 
     fig.show()
 
+#%%
+
+def plot_gas_elec_imports_by_scenario(scenarios, country, year, plot_title="Natural Gas Use and Electricity Imports by Scenario"):
+
+
+    threshold = 1e-8
+
+    market_areas = {
+        'ALBANIA': ['AL'], 'AUSTRIA': ['AT'], 'BELGIUM': ['BE'], 'BOSNIA_AND_HERZEGOVINA': ['BA'],
+        'BULGARIA': ['BG'], 'CROATIA': ['HR'], 'CYPRUS': ['CY'], 'CZECH_REPUBLIC': ['CZ'],
+        'DENMARK': ['DK1', 'DK2'], 'ESTONIA': ['EE'], 'FINLAND': ['FIN'], 'FRANCE': ['FR'],
+        'GERMANY': ['DE4-E', 'DE4-N', 'DE4-S', 'DE4-W'], 'GREECE': ['GR'], 'HUNGARY': ['HU'],
+        'IRELAND': ['IE'], 'ITALY': ['IT'], 'LATVIA': ['LV'], 'LITHUANIA': ['LT'],
+        'LUXEMBOURG': ['LU'], 'MALTA': ['MT'], 'MONTENEGRO': ['ME'], 'NETHERLANDS': ['NL'],
+        'NORTH_MACEDONIA': ['MK'], 'NORWAY': ['NO1', 'NO2', 'NO3', 'NO4', 'NO5'],
+        'POLAND': ['PL'], 'PORTUGAL': ['PT'], 'ROMANIA': ['RO'], 'SERBIA': ['RS'],
+        'SLOVAKIA': ['SK'], 'SLOVENIA': ['SI'], 'SPAIN': ['ES'],
+        'SWEDEN': ['SE1', 'SE2', 'SE3', 'SE4'], 'SWITZERLAND': ['CH'], 'TURKEY': ['TR'], 'UNITED_KINGDOM': ['UK']
+    }
+
+    market_area_list = market_areas.get(country, [])
+    color_map = {
+        'Natural Gas': '#d62728',     # red
+        'Electricity Imports': '#1f77b4'  # blue
+    }
+
+    scenario_names = []
+    gas_values = []
+    elec_imports_values = []
+
+    for scenario_name, scenario_path in scenarios:
+        main_results_path = os.path.join(scenario_path, "MainResults.gdx")
+        df_CC_YCRAG, df_F_CONS_YCRA, df_EMI_YCRAG, df_G_CAP_YCRAF, df_PRO_YCRAGF, df_OBJ_YCR, df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_X_FLOW_YCR, df_XH2_FLOW_YCR, df_XH_FLOW_YCA = Import_BalmorelMR(main_results_path)
+        print(df_F_CONS_YCRA.columns)
+
+        if df_F_CONS_YCRA is None or df_F_CONS_YCRA.empty:
+            continue
+        print(df_F_CONS_YCRA.columns)
+
+        # Natural Gas Usage (TWh)
+        natgas_val = df_F_CONS_YCRA[
+            (df_F_CONS_YCRA["Y"] == year) &
+            (df_F_CONS_YCRA["C"] == country) &
+            (df_F_CONS_YCRA["FFF"] == 'NATGAS')
+        ]['value'].sum()
+
+        # Electricity Imports (TWh)
+        elec_imports_val = 0
+        if df_X_FLOW_YCR is not None and not df_X_FLOW_YCR.empty:
+            imports = df_X_FLOW_YCR[
+                (df_X_FLOW_YCR['C'] != country) &
+                (df_X_FLOW_YCR['IRRRI'].isin(market_area_list))
+            ]
+            elec_imports_val = imports['value'].sum()
+
+        total_val = abs(natgas_val) + abs(elec_imports_val)
+        if total_val > threshold:
+            scenario_names.append(scenario_name)
+            gas_values.append(natgas_val)
+            elec_imports_values.append(elec_imports_val)
+
+    if not scenario_names:
+        print("No scenarios have significant values for natural gas or electricity imports.")
+        return
+
+    # Plotting
+    fig = go.Figure()
+
+    fig.add_trace(go.Bar(
+        x=scenario_names,
+        y=gas_values,
+        name='Natural Gas Usage',
+        marker_color=color_map['Natural Gas']
+    ))
+
+    fig.add_trace(go.Bar(
+        x=scenario_names,
+        y=elec_imports_values,
+        name='Electricity Imports',
+        marker_color=color_map['Electricity Imports']
+    ))
+
+    y_max = max(gas_values + elec_imports_values)
+    y_limit = math.ceil(y_max / 10) * 10
+    tickvals = list(range(0, y_limit + 1, 10))
+
+    # Styling consistent with multi_scenario_impexp_histogram, but grid every 10 units
+    fig.update_layout(
+        title=plot_title if title else None,
+        barmode='group',
+        xaxis=dict(
+            title='Scenario',
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black'
+        ),
+        yaxis=dict(
+            title='[TWh]',
+            tickvals=tickvals,
+            showline=True,
+            mirror=True,
+            linewidth=1,
+            linecolor='black',
+            showgrid=True,
+            gridcolor='lightgray',
+            gridwidth=0.6,
+            zeroline=True,
+            zerolinewidth=0.6,
+            zerolinecolor='lightgray',
+            dtick=10
+        ),
+        font=dict(
+            family='DejaVu Sans, sans-serif',
+            size=14,
+            color='black'
+        ),
+        paper_bgcolor='white',
+        plot_bgcolor='white',
+        legend=dict(
+            bgcolor='white',
+            bordercolor='black',
+            borderwidth=1,
+            font=dict(size=12)
+        ),
+        margin=dict(l=50, 
+                    r=20, 
+                    t=80 if title else 40,  # Adjust top margin if title is not present
+                    b=60)
+    )
+
+    fig.show()
+    return fig
+
+
 title=False
 
 fig=multi_scenario_fuel_supply(
@@ -2078,19 +2243,38 @@ fig=multi_scenario_fuel_supply(
     year=2050,
     plot_title="Fuels Demand Supply"
 )
-#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsDemandSupply_CO2.pdf', engine='kaleido')
+# Adjust the layout to make the PDF wider
+fig.update_layout(
+    width=1500,  # Set a wider width for the PDF
+    height=600   # Adjust height as needed
+)
+
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsDemandSupply_Biodiversity.pdf', engine='kaleido')
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsDemandSupply_CrossCases.pdf', engine='kaleido')
 
 fig=multi_scenario_stacked_emissions(
     scenario_list,
     plot_title="CO2 Emissions "
 )
-#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\CO2_CO2.pdf', engine='kaleido')
+
+# Adjust the layout to make the PDF wider
+fig.update_layout(
+    width=1200,  # Set a wider width for the PDF
+    height=600   # Adjust height as needed
+)
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\CO2_CrossCases.pdf', engine='kaleido')
 
 fig=multi_scenario_biomass_consumption(
     scenario_list,
     plot_title="Biomass Consumption"
 )
-#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\Biomass_CO2.pdf', engine='kaleido')
+
+fig.update_layout(
+    width=1200,  # Set a wider width for the PDF
+    height=600   # Adjust height as needed
+)
+
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\Biomass_CrossCases.pdf', engine='kaleido')
 
 multi_scenario_gcap_histogram(
     scenario_list,
@@ -2098,45 +2282,74 @@ multi_scenario_gcap_histogram(
     plot_title="Total Installed Capacity"
 )
 
-multi_scenario_gcap_histogram_with_exogenous(
-    scenario_list,
-    df_cap2020, 
-    country='DENMARK', 
-    plot_title="Installed Capacity By Scenario"
-)
 
-# Save the plot to a file
+# Save the plot to a file with a wider layout for better PDF formatting
 fig = multi_scenario_gcap_histogram_with_exogenous(
     scenario_list,
     df_cap2020, 
     country='DENMARK', 
     plot_title="Installed Capacity By Scenario"
 )
-#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\TotCapInst_CO2.pdf', engine='kaleido')
+
+fig = multi_scenario_gcap_histogram_with_exogenous(
+    scenario_list,
+    df_cap2020, 
+    country='NORWAY', 
+    plot_title="Installed Capacity By Scenario"
+)
+
+fig = multi_scenario_gcap_histogram_with_exogenous(
+    scenario_list,
+    df_cap2020, 
+    country='all', 
+    plot_title="Installed Capacity By Scenario"
+)
 
 
-multi_scenario_pro_histogram(
+# Adjust the layout to make the PDF wider
+fig.update_layout(
+    width=1200,  # Set a wider width for the PDF
+    height=600   # Adjust height as needed
+)
+
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\TotCapInst_Base.pdf', engine='kaleido')
+
+
+
+fig=multi_scenario_pro_histogram(
     scenario_list,
     country='DENMARK',
     plot_title="Production by Scenario (in Balmorel)",
     demand_markers=False
 )
 
-fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\Prod_CO2vsBase.pdf', engine='kaleido')
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\Prod_CrossCases.pdf', engine='kaleido')
 
 fig=multi_scenario_impexp_histogram(scenario_list,
                                 country='DENMARK', 
                                 marker_length=100,
                                 plot_title="Imports and Exports by Scenario")
 
-#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\ImpExp_CO2.pdf', engine='kaleido')
+fig.update_layout(
+    width=1200,  # Set a wider width for the PDF
+    height=600   # Adjust height as needed
+)
+
+#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\ImpExp_Base.pdf', engine='kaleido')
 
 fig=multi_scenario_fuel_share_histogram(
     scenario_list,
     country='DENMARK',
     plot_title="Energy Production by Fuel"
 )
-#fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\EnergySharebySource_CO2.pdf', engine='kaleido')
+
+# Adjust the layout to make the PDF wider
+fig.update_layout(
+    width=1200,  # Set a wider width for the PDF
+    height=600   # Adjust height as needed
+)
+
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\EnergySharebySource_CrossCases.pdf', engine='kaleido')
 
 multi_scenario_objective_histogram_simple(
         scenario_list, 
@@ -2147,6 +2360,25 @@ stacked_objective_by_subcategory(scenario_list,
                                  country='all', 
                                  plot_title="Stacked Objective Breakdown by Scenario")
 
+# stacked_objective_by_subcategory(scenario_list, 
+#                                  country='DENMARK', 
+#                                  plot_title="Stacked Objective Breakdown by Scenario")
+
+# stacked_objective_by_subcategory(scenario_list, 
+#                                  country='NORWAY', 
+#                                  plot_title="Stacked Objective Breakdown by Scenario")
+# stacked_objective_by_subcategory(scenario_list, 
+#                                  country='SWEDEN', 
+#                                  plot_title="Stacked Objective Breakdown by Scenario")
+# stacked_objective_by_subcategory(scenario_list, 
+#                                  country='GERMANY', 
+#                                  plot_title="Stacked Objective Breakdown by Scenario")
+
+
 multi_scenario_objective(scenario_list, 
                          plot_title="Objective Function Value")
+
+fig=plot_gas_elec_imports_by_scenario(scenario_list, country='DENMARK', year='2050', plot_title="Natural Gas Use and Electricity Imports by Scenario")
+fig.write_image(r'C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\NatGasFocus_CrossCases.pdf', engine='kaleido')
+
 #%%

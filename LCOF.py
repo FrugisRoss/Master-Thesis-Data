@@ -9,6 +9,8 @@ import os
 import seaborn as sns
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
+import glob
+import math
 
 
 pd.set_option('display.max_rows', None)
@@ -19,7 +21,39 @@ pd.set_option('display.max_colwidth', None)
 
 
 scenario = [
-     ("CO2", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_RightOut\model"),]
+     
+    # ("BASE BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model"),
+    #  ("BASE FOSSIL ", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_FOSSIL\model"),
+    #  ("BASE NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_nowoodpellets\model"),
+     
+    # ("CO2 BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model"),
+     #("CO2 NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_nowoodpellets\model"),
+    #  ("CO2 FOSSIL NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_FOSSIL_nowoodpellets\model"),
+    
+   # ("BIODIVERSITY BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf\model"),
+   
+    # ("BIODIVERSITY FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL\model"),
+    ("BIODIVERSITY NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_nowoodpellets\model"),
+    #  ("BIODIVERSITY NWI FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL_nowoodpellets\model"),
+    #("BIODIVERSITY BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf\model"),
+   
+    #("BIODIVERSITY FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL\model"),
+    #("BIODIVERSITY NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_nowoodpellets\model"),
+    # ("BIODIVERSITY NWI FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL_nowoodpellets\model"),
+
+     #("CO2 BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC\model"),
+     #("CO2 NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\CO2_Case_RLC_nowoodpellets\model"),
+     ]
+
+
+fuel_to_processes = [
+    (["AMMONIA_FLOW"], ["Nitrogen_Production", "Ammonia_Synthesis_50"]),
+    (["BIOGASOLINEFLOW_BJ_H2","BIOJETFLOW_H2"], ["BioJet_H2_50"]),
+    (["BIOGASOLINEFLOW_BJ_TG","BIOJETFLOW_TG"], ["BioJet_50"]),
+    (["EME_GASOLINE_FLOW", "EME_JET_FLOW","EME_LPG_FLOW"], ["EMethanol_synthesis_50", "EMethanol_Upgrade_50", "CO2_DAC_50"]),
+    (["KEROSENEFLOW"], ["KeroseneSource"]),
+
+]
 
 fuels = [
     ("Ammonia_Synthesis_50", "AMMONIA_FLOW"),
@@ -29,16 +63,33 @@ fuels = [
     ("BioJet_50", "BIOJETFLOW_TG"),
     ("EME_Upgrade_Sum", "EME_GASOLINE_FLOW"),
     ("EME_Upgrade_Sum", "EME_JET_FLOW"),
-    ("EME_Upgrade_Sum", "EME_LPG_FLOW")
+    ("EME_Upgrade_Sum", "EME_LPG_FLOW"),
+    ('KEROSENEFLOW', 'KeroseneSource')
 ]
 
-fuel_to_processes = [
-    (["AMMONIA_FLOW"], ["Nitrogen_Production", "Ammonia_Synthesis_50"]),
-    (["BIOGASOLINEFLOW_BJ_H2","BIOJETFLOW_H2"], ["BioJet_H2_50"]),
-    (["BIOGASOLINEFLOW_BJ_TG","BIOJETFLOW_TG"], ["BioJet_50"]),
-    (["EME_GASOLINE_FLOW", "EME_JET_FLOW","EME_LPG_FLOW"], ["EMethanol_synthesis_50", "EMethanol_Upgrade_50", "CO2_DAC_50"]),
+
+fuel_groups = [
+    ("AMMONIA_FLOW"),
+    ("BIOGASOLINEFLOW_BJ_H2","BIOJETFLOW_H2"),
+    ("BIOGASOLINEFLOW_BJ_TG","BIOJETFLOW_TG"),
+    ("EME_GASOLINE_FLOW", "EME_JET_FLOW","EME_LPG_FLOW"),
+    ("KEROSENEFLOW")
 
 ]
+
+
+# Delete all CSVs in the folder containing the fuel group names in their filenames
+folder_path = os.path.dirname(__file__)
+for fuel_group in fuel_groups:
+    for fuel in fuel_group:
+        csv_pattern = os.path.join(folder_path, f"*{fuel}*.csv")
+        for file in glob.glob(csv_pattern):
+            try:
+                os.remove(file)
+                print(f"Deleted: {file}")
+            except OSError as e:
+                print(f"Error deleting file {file}: {e}")
+
 
 def Import_allendofmodel(file_path):
      main_results_path = os.path.join(file_path, "all_endofmodel.gdx")
@@ -147,11 +198,11 @@ def Avg_yearly_price(scenario_path, commodity, year, country):
 
      return avg_price
 
-# Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Electricity", "2050" , "DENMARK")
+Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Electricity", "2050" , "GERMANY")
 # Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "H2", "2050" , "DENMARK")
 # Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Heat", "2050" , "DENMARK")
 
-          
+#%%          
 def Avg_yearly_biomass_price (scenario_path, year, country):
     
     """
@@ -312,6 +363,9 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
             (df_ECO_PROC_YCRAP["AAA"].isin(valid_cities))
         ]
 
+        print(f"The df_ECO_PROC_YCRAP_investment for the fuel_group {fuel_group} is:")
+        print(df_ECO_PROC_YCRAP_investment)
+
         df_ECO_PROC_YCRAP_fixedop = df_ECO_PROC_YCRAP[
             (df_ECO_PROC_YCRAP["Y"] == year) &
             (df_ECO_PROC_YCRAP["C"] == country) &
@@ -319,6 +373,9 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
             (df_ECO_PROC_YCRAP["COST_TYPE"] == "FIXED") &
             (df_ECO_PROC_YCRAP["AAA"].isin(valid_cities))
         ]
+
+        print(f"The df_ECO_PROC_YCRAP_fixedop for the fuel_group {fuel_group} is:")
+        print(df_ECO_PROC_YCRAP_fixedop)
         
         #VARIABLE O&M COST DATA
 
@@ -329,6 +386,8 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
                (df_FLOWA["AAA"].isin(valid_cities))
           ]
         
+        print(f"The df_FLOWA_variableop for the fuel_group {fuel_group} is:")
+        print(df_FLOWA_variableop)
         #FEEDSTOCK DATA
 
         net_consumed_electricity= 0
@@ -523,40 +582,107 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
 
 #%%
 
+# Table of fixed LCOF values for specific fossil fuels
+fixed_lcof_values = {
+    "DIESELFLOW": 45.63888889,
+    "MDOFLOW": 18.38785047,
+    "KEROSENEFLOW": 27.19546742
+}
+
 # Calculate LCOF and store results
 first_try_table, first_try_lcof = LCOF_calculation(
-     scenario[0][1], 
-     fuels, 
-     fuel_to_processes, 
-     "2050", 
-     "DENMARK"
+    scenario[0][1], 
+    fuels, 
+    fuel_to_processes, 
+    "2050", 
+    "DENMARK"
 )
+
+# Overwrite LCOF for fossil fuels if present in fuel_to_processes
+for fuel_group, _ in fuel_to_processes:
+    for fossil_fuel, lcof_value in fixed_lcof_values.items():
+        if fossil_fuel in fuel_group:
+            # Assign the fixed value for this fuel group
+            first_try_lcof[tuple([fossil_fuel])] = lcof_value
 
 name_map = {
     "Ammonia_Eff": "AMMONIA_FLOW",
-    "BioGasoline_Eff": "BIOGASOLINEFLOW_BJ_H2",
+    "BioGasoline_Eff": "BIOGASOLINEFLOW",
     "EME_Gasoline_Eff": "EME_GASOLINE_FLOW",
     "EME_LPG_Eff": "EME_LPG_FLOW",
-    "BioJet_Eff": "BIOJETFLOW_H2",
-    "EME_Jet_Eff": "EME_JET_FLOW"
+    "BioJet_Eff": "BIOJETFLOW",
+    "EME_Jet_Eff": "EME_JET_FLOW",
+    "KeroseneSource":"KEROSENEFLOW"
 }
 
 sectors= { "Sea_fuels_sum":"Maritime",
-          "Air_fuels_sum":"Aviation",
-          "Road_fuels_sum":"Road",
-     }
+        "Air_fuels_sum":"Aviation",
+        "Road_fuels_sum":"Road",
+    }
 
-def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country):
+def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country, scenario_name):
     import plotly.graph_objects as go
     import pandas as pd
 
     # Import data
     df_FLOWC, _, _, _ = Import_OptiflowMR(scenario_path)
 
+    # Combine specific fuel groups if they exist in lcof_fuels
+    group1 = ["BIOGASOLINEFLOW_BJ_H2", "BIOJETFLOW_H2"]
+    group2 = ["BIOGASOLINEFLOW_BJ_TG", "BIOJETFLOW_TG"]
+    combined_group = ["BIOGASOLINEFLOW", "BIOJETFLOW"]
+
+    if any(fuel in lcof_fuels for fuel in [tuple(group1), tuple(group2)]):
+        # Calculate the weighted average LCOF for the combined group
+        total_quantity_group1 = df_FLOWC[
+            (df_FLOWC["IPROCTO"].isin(["BioGasoline_SUM", "BioJet_SUM"])) &
+            (df_FLOWC["FLOW"].isin(group1)) &
+            (df_FLOWC["Y"] == year) &
+            (df_FLOWC["CCC"] == country)
+        ]["value"].sum()
+
+        total_quantity_group2 = df_FLOWC[
+            (df_FLOWC["IPROCTO"].isin(["BioGasoline_SUM", "BioJet_SUM"])) &
+            (df_FLOWC["FLOW"].isin(group2)) &
+            (df_FLOWC["Y"] == year) &
+            (df_FLOWC["CCC"] == country)
+        ]["value"].sum()
+
+        lcof_group1 = lcof_fuels.get(tuple(group1), 0)
+        lcof_group2 = lcof_fuels.get(tuple(group2), 0)
+
+        if math.isnan(lcof_group1) and total_quantity_group1 == 0.0:
+            lcof_group1 = 0.0
+        if math.isnan(lcof_group2) and total_quantity_group2 == 0.0:
+            lcof_group2 = 0.0
+        print(f"lcof_group1: {lcof_group1}")
+        print(f"lcof_group2: {lcof_group2}")
+
+        total_quantity_combined = total_quantity_group1 + total_quantity_group2
+        print(f"Total quantity for group 1: {total_quantity_group1}")
+        print(f"Total quantity for group 2: {total_quantity_group2}")
+        print(total_quantity_combined)
+        if total_quantity_combined > 0:
+            combined_lcof = (
+                (lcof_group1 * total_quantity_group1) +
+                (lcof_group2 * total_quantity_group2)
+            ) / total_quantity_combined
+        else:
+            combined_lcof = None
+
+        print(combined_lcof)
+
+        # Update lcof_fuels with the combined group
+        lcof_fuels[tuple(combined_group)] = combined_lcof
+
+        # Remove the original groups from lcof_fuels
+        lcof_fuels.pop(tuple(group1), None)
+        lcof_fuels.pop(tuple(group2), None)
+
     # Filter and map
     filtered_df_FLOWC = df_FLOWC[
-        (df_FLOWC["Y"] == year) & 
-        (df_FLOWC["CCC"] == country) & 
+        (df_FLOWC["Y"] == year) &
+        (df_FLOWC["CCC"] == country) &
         (df_FLOWC["IPROCTO"].isin(sectors.keys()))
     ].copy()
 
@@ -594,7 +720,7 @@ def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country):
 
     fig.update_layout(
         xaxis=dict(
-            title="Sector",
+            title="Transport Sector",
             tickangle=0,
             showline=True,
             linewidth=1.2,
@@ -604,6 +730,7 @@ def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country):
         ),
         yaxis=dict(
             title="LCOF (€/GJ)",
+            range=[0, 30],  # Set y-axis range to go up to 20
             showgrid=True,
             gridcolor='lightgray',
             zeroline=True,
@@ -625,108 +752,153 @@ def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country):
         autosize=False,
         width=800,
         height=600,
-        margin=dict(l=100, r=100, t=30, b=80)  # No top title, just clean layout
+        margin=dict(l=100, r=100, t=80, b=80)  # Adjusted top margin for title
+    )
+
+    # Add scenario name as a title
+    fig.update_layout(
+        title=dict(
+            text=f"{scenario_name}",
+            x=0.5,
+            y=0.90,
+            xanchor='center',
+            yanchor='top',
+            font=dict(size=20, family="DejaVu Sans, sans-serif", color="black")
+        )
     )
 
     fig.show()
 
+    return fig
 
-LCOF_bysector(scenario[0][1], first_try_lcof, sectors, name_map, "2050", "DENMARK")
+
+
+
+
+
 
 
 #%%
 
 fuel_group_name_map = {
-     ("AMMONIA_FLOW",): "Ammonia",
-     ("BIOGASOLINEFLOW_BJ_H2", "BIOJETFLOW_H2"): "Biofuels with H₂",
-     ("BIOGASOLINEFLOW_BJ_TG", "BIOJETFLOW_TG"): "Biofuels ",
-     ("EME_GASOLINE_FLOW", "EME_JET_FLOW", "EME_LPG_FLOW"): "E-Methanol Derived Fuels",
+    ("AMMONIA_FLOW",): "Ammonia",
+    ("BIOGASOLINEFLOW_BJ_H2", "BIOJETFLOW_H2"): "Biofuels with H₂",
+    ("BIOGASOLINEFLOW_BJ_TG", "BIOJETFLOW_TG"): "Biofuels ",
+    ("EME_GASOLINE_FLOW", "EME_JET_FLOW", "EME_LPG_FLOW"): "E-Methanol Derived Fuels",
+    ("KEROSENEFLOW"): "Kerosene"
 }
 
 # Normalized name map (can expand this as needed)
 normalized_name_map = {
-      "AMMONIA_FLOW": "Ammonia",
-      "BIOGASOLINEFLOW_BJ_H2": "Biofuels with H₂",
-      "BIOGASOLINEFLOW_BJ_TG": "Biofuels",
-      "EME_GASOLINE_FLOW": "E-Methanol Derived Fuels",
+     "AMMONIA_FLOW": "Ammonia",
+     "BIOGASOLINEFLOW_BJ_H2": "Biofuels with H₂",
+     "BIOGASOLINEFLOW_BJ_TG": "Biofuels",
+     "EME_GASOLINE_FLOW": "E-Methanol Derived Fuels",
+     "KEROSENEFLOW": "Kerosene"
 }
 # Normalize keys
 def normalize_key(k):
-      if isinstance(k, (tuple, list)):
-            k = k[0]
-      return k.strip().upper()
+     if isinstance(k, (tuple, list)):
+          k = k[0]
+     return k.strip().upper()
 
 # Prepare plot data
 x_labels = []
 y_values = []
 
 for k, v in first_try_lcof.items():
-      norm_key = normalize_key(k)
-      readable = normalized_name_map.get(norm_key)
-      if not readable:
-            print(f"⚠️ Warning: Unmapped key '{norm_key}' — using fallback label.")
-            readable = norm_key.replace("_", " ").title()
-      x_labels.append(readable)
-      y_values.append(v)
+    norm_key = normalize_key(k)
+    readable = normalized_name_map.get(norm_key)
+    if not readable:
+       print(f"⚠️ Warning: Unmapped key '{norm_key}' — using fallback label.")
+       readable = norm_key.replace("_", " ").title()
+    x_labels.append(readable)
+    y_values.append(v)
 
 # Create Plotly bar chart
 fig = go.Figure()
 
 fig.add_trace(go.Bar(
-      x=x_labels,
-      y=y_values,
-      marker=dict(color='#e3a41b'),
-      name="LCOF"
+    x=x_labels,
+    y=y_values,
+    marker=dict(color='#e3a41b'),
+    name="LCOF"
 ))
 
 fig.update_layout(
-      xaxis=dict(
-            title="Fuel Group",
-            tickangle=0,  # Ensure labels are not tilted
-            showline=True,
-            linewidth=1,
-            linecolor='black',
-            tickfont=dict(size=14)  # Increased font size for fuel categories
-      ),
-      yaxis=dict(
-            title="LCOF (€/GJ)",
-            showgrid=True,
-            gridcolor='lightgray',
-            zeroline=True,
-            zerolinecolor='lightgray',
-            zerolinewidth=0.6,
-            linecolor='black',
-            linewidth=1,
-            tickfont=dict(size=12)
-      ),
-      font=dict(
-            family="DejaVu Sans, sans-serif",
-            size=14,
-            color="black"
-      ),
-      plot_bgcolor='white',
-      paper_bgcolor='white',
-      margin=dict(l=60, r=30, t=80, b=80),
-      showlegend=False,  # Ensure the legend is displayed
+    xaxis=dict(
+       title="Fuel Group",
+       tickangle=0,  # Ensure labels are not tilted
+       showline=True,
+       linewidth=1,
+       linecolor='black',
+       tickfont=dict(size=14)  # Increased font size for fuel categories
+    ),
+    yaxis=dict(
+       title="LCOF (€/GJ)",
+       range=[0, 30],  # Set y-axis range to go up to 25
+       showgrid=True,
+       gridcolor='lightgray',
+       zeroline=True,
+       zerolinecolor='lightgray',
+       zerolinewidth=0.6,
+       linecolor='black',
+       linewidth=1,
+       tickfont=dict(size=12)
+    ),
+    font=dict(
+       family="DejaVu Sans, sans-serif",
+       size=14,
+       color="black"
+    ),
+    plot_bgcolor='white',
+    paper_bgcolor='white',
+    margin=dict(l=60, r=30, t=80, b=80),
+    showlegend=False,  # Ensure the legend is displayed
 )
 
 # Center the plot in the figure
 fig.update_layout(
-      autosize=False,
-      width=800,  # Adjust width as needed
-      height=600,  # Adjust height as needed
-      margin=dict(l=100, r=100, t=100, b=100),  # Center the plot by adjusting margins
+    autosize=False,
+    width=800,  # Adjust width as needed
+    height=600,  # Adjust height as needed
+    margin=dict(l=100, r=100, t=100, b=100),  # Center the plot by adjusting margins
 )
 
 # Add a full rectangle border around the plot
 fig.update_layout(
-      xaxis=dict(showline=True, mirror=True),  # Mirror x-axis lines
-      yaxis=dict(showline=True, mirror=True),  # Mirror y-axis lines
+    xaxis=dict(showline=True, mirror=True),  # Mirror x-axis lines
+    yaxis=dict(showline=True, mirror=True),  # Mirror y-axis lines
 )
+
+# Add scenario name as a title
+fig.update_layout(
+    title=dict(
+       text=f"{scenario[0][0]}",
+       x=0.5,
+       y=0.90,
+       xanchor='center',
+       yanchor='top',
+       font=dict(size=20, family="DejaVu Sans, sans-serif", color="black")
+    )
+)
+
 
 fig.show()
 
-fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_CO2.pdf", engine= 'kaleido') 
+#fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_{scenario[0][0]}.pdf", engine= 'kaleido') 
+
+fig= LCOF_bysector(
+    scenario[0][1], 
+    first_try_lcof, 
+    sectors, 
+    name_map, 
+    "2050", 
+    "DENMARK", 
+    scenario[0][0]
+)
+#fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\LCOF_bysector_{scenario[0][0]}.pdf", engine='kaleido')
+
 
 #%%
 # import pandas as pd
@@ -736,9 +908,9 @@ fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results
 
 # # Create the DataFrame
 # data = {
-#     'Category': ['Aviation Demand', 'Road Demand', 'Maritime Demand', 'Total Demand'],
-#     'Biofuels Share [%]': [75.42, 85.42, 14.82, 43.84],
-#     'E Fuels Share [%]': [24.58, 14.58, 85.18, 56.16]
+#     'Category': ['Aviation Demand', 'Road Demand', 'Maritime Demand', 'Grand Total'],
+#     'Biofuels Share [%]': [100.00, 100.00, 21.22, 58.18],
+#     'E Fuels Share [%]': [0.00, 0.00, 78.78, 41.82]
 # }
 
 # df = pd.DataFrame(data)
@@ -776,7 +948,7 @@ fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results
 #     legend=dict(
 #         orientation='h',
 #         x=0.5,
-#         y=-0.2,
+#         y=-0.20,
 #         xanchor='center',
 #         bordercolor='black',
 #         borderwidth=1,
@@ -786,8 +958,11 @@ fig.write_image(r"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results
 # )
 
 # # Move subplot titles closer to the pies
-# fig.update_annotations(dict(yshift=5))
+# fig.update_annotations(dict(yshift=10))
 
 # fig.show()
 # fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsPie_{scenario[0][0]}.pdf", engine='kaleido')
 # #%%
+
+#%%
+
