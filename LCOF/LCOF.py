@@ -1,4 +1,7 @@
-#%%
+#This script can be used for the post processing of the results obtained from the Optiflow model.
+#It calculates the Levelized Cost of Fuel (LCOF) for different fuel groups and transport sectors.
+#Author: Rossella Frugis
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -19,6 +22,9 @@ pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
 
+#------------To be modified by the user-------------------
+
+#Scenario is a tuple containing the referring scenario name and the pathway to the folder containing the Optiflow_MainResults.gdx and all_endofmodel.gdx files 
 
 scenario = [
      
@@ -46,6 +52,10 @@ scenario = [
      ]
 
 
+
+#Mapping of fuel flows to processes' pathways that produce them.
+#Must be modified according to the processes defined in the Optiflow model.
+
 fuel_to_processes = [
     (["AMMONIA_FLOW"], ["Nitrogen_Production", "Ammonia_Synthesis_50"]),
     (["BIOGASOLINEFLOW_BJ_H2","BIOJETFLOW_H2"], ["BioJet_H2_50"]),
@@ -54,6 +64,10 @@ fuel_to_processes = [
     (["KEROSENEFLOW"], ["KeroseneSource"]),
 
 ]
+
+#List of tuples containing the process names and the corresponding fuel flows they produce.
+#Used in the code to obtain the fuel quantity produced by each process.
+#Must be modified according to the processes defined in the Optiflow model.
 
 fuels = [
     ("Ammonia_Synthesis_50", "AMMONIA_FLOW"),
@@ -64,18 +78,44 @@ fuels = [
     ("EME_Upgrade_Sum", "EME_GASOLINE_FLOW"),
     ("EME_Upgrade_Sum", "EME_JET_FLOW"),
     ("EME_Upgrade_Sum", "EME_LPG_FLOW"),
-    ('KEROSENEFLOW', 'KeroseneSource')
+    ('KeroseneSource','KEROSENEFLOW' )
 ]
 
 
-fuel_groups = [
-    ("AMMONIA_FLOW"),
-    ("BIOGASOLINEFLOW_BJ_H2","BIOJETFLOW_H2"),
-    ("BIOGASOLINEFLOW_BJ_TG","BIOJETFLOW_TG"),
-    ("EME_GASOLINE_FLOW", "EME_JET_FLOW","EME_LPG_FLOW"),
-    ("KEROSENEFLOW")
+# Table of Optiflow input fuel cost values for specific fossil fuels [€/GJ]
+# The name of the fossil fuel must be expressed as the name of the Optiflow flow, so that it matches the other tuples
 
-]
+fossil_fuels_costs = {
+    "DIESELFLOW": 45.63888889,
+    "MDOFLOW": 18.38785047,
+    "KEROSENEFLOW": 27.19546742
+}
+
+name_map = {
+    "Ammonia_Eff": "AMMONIA_FLOW",
+    "BioGasoline_Eff": "BIOGASOLINEFLOW",
+    "EME_Gasoline_Eff": "EME_GASOLINE_FLOW",
+    "EME_LPG_Eff": "EME_LPG_FLOW",
+    "BioJet_Eff": "BIOJETFLOW",
+    "EME_Jet_Eff": "EME_JET_FLOW",
+    "KeroseneSource":"KEROSENEFLOW"
+}
+
+# Normalized name map for the plots by fuel group
+normalized_name_map = {
+     "AMMONIA_FLOW": "Ammonia",
+     "BIOGASOLINEFLOW_BJ_H2": "Biofuels with H₂",
+     "BIOGASOLINEFLOW_BJ_TG": "Biofuels",
+     "EME_GASOLINE_FLOW": "E-Methanol Derived Fuels",
+     "KEROSENEFLOW": "Kerosene"
+}
+
+
+#-----------End of user modification section-------------------
+
+# List of fuel groups to be deleted from the folder containing the CSV files.
+# This is set to the left side (fuel group) of each tuple in fuel_to_processes.
+fuel_groups = [tuple(fuel_group) for fuel_group, _ in fuel_to_processes]
 
 
 # Delete all CSVs in the folder containing the fuel group names in their filenames
@@ -91,19 +131,32 @@ for fuel_group in fuel_groups:
                 print(f"Error deleting file {file}: {e}")
 
 
+# Function to import all end-of-model results from the GDX file
 def Import_allendofmodel(file_path):
-     main_results_path = os.path.join(file_path, "all_endofmodel.gdx")
-     df = gt.Container(main_results_path)
-     
-     df_SOSIBU2INDIC = pd.DataFrame(df["SOSIBU2INDIC"].records)
-     df_TRANSCOST = pd.DataFrame(df["TRANSCOST"].records)
-     df_PROCDATA = pd.DataFrame(df["PROCDATA"].records)
-     df_DISCOUNTRATE = pd.DataFrame(df["DISCOUNTRATE"].records)
-     df_TRANSDIST = pd.DataFrame(df["TRANSDIST"].records)
-     
-     return df_SOSIBU2INDIC, df_TRANSCOST, df_PROCDATA, df_DISCOUNTRATE, df_TRANSDIST
+    """
+    Imports and returns key dataframes from the 'all_endofmodel.gdx' file located at the specified file path.
+    Args:
+        file_path (str): The directory path where the 'all_endofmodel.gdx' file is located.
+    Returns:
+        tuple: A tuple containing the following pandas DataFrames:
+            - df_SOSIBU2INDIC: DataFrame of SOSIBU2INDIC records.
+            - df_TRANSCOST: DataFrame of TRANSCOST records.
+            - df_PROCDATA: DataFrame of PROCDATA records.
+            - df_DISCOUNTRATE: DataFrame of DISCOUNTRATE records.
+            - df_TRANSDIST: DataFrame of TRANSDIST records.
+    """
+    main_results_path = os.path.join(file_path, "all_endofmodel.gdx")
+    df = gt.Container(main_results_path)
+    
+    df_SOSIBU2INDIC = pd.DataFrame(df["SOSIBU2INDIC"].records)
+    df_TRANSCOST = pd.DataFrame(df["TRANSCOST"].records)
+    df_PROCDATA = pd.DataFrame(df["PROCDATA"].records)
+    df_DISCOUNTRATE = pd.DataFrame(df["DISCOUNTRATE"].records)
+    df_TRANSDIST = pd.DataFrame(df["TRANSDIST"].records)
+    
+    return df_SOSIBU2INDIC, df_TRANSCOST, df_PROCDATA, df_DISCOUNTRATE, df_TRANSDIST
 
-
+# Function to import Optiflow Main Results from the GDX file
 def Import_OptiflowMR(file_path):
     main_results_path = os.path.join(file_path, "Optiflow_MainResults.gdx")
     df = gt.Container(main_results_path)
@@ -114,7 +167,22 @@ def Import_OptiflowMR(file_path):
 
     return df_FLOWC, df_ECO_PROC_YCRAP, df_VFLOWTRANS_Opti_A, df_FLOWA
 
+
+# Function to import BalmorelMR results from the GDX file
 def Import_BalmorelMR(file_path):
+    """
+    Imports and processes Balmorel model results from a specified directory.
+    Args:
+        file_path (str): The directory path containing the 'MainResults.gdx' file.
+    Returns:
+        tuple: A tuple containing six pandas DataFrames in the following order:
+            - df_EL_DEMAND_YCR: Electricity demand by year, country, and region.
+            - df_H_DEMAND_YCRA: Heat demand by year, country, region, and area.
+            - df_H2_DEMAND_YCR: Hydrogen demand by year, country, and region.
+            - df_EL_PRICE_YCR: Electricity price by year, country, and region.
+            - df_H2_PRICE_YCR: Hydrogen price by year, country, and region.
+            - df_H_PRICE_YCRA: Heat price by year, country, region, and area.
+    """
     main_results_path = os.path.join(file_path, "MainResults.gdx")
     df = gt.Container(main_results_path)
     
@@ -130,114 +198,87 @@ def Import_BalmorelMR(file_path):
 #Average EL, H2 and H price per year
 
 def Avg_yearly_price(scenario_path, commodity, year, country):
-     """
-     Calculate the average yearly price of a specified commodity (Electricity, H2, or Heat) 
-     for a given year and country, weighted by the corresponding demand in €/PJ.
-     This function imports data from the BalmorelMR model, filters the price and demand 
-     data for the specified year and country, and computes the weighted average price 
-     based on regional demand.
-     Args:
-          scenario_path (str): The file path to the scenario data for the BalmorelMR model.
-          commodity (str): The type of commodity to analyze. Must be one of "Electricity", "H2", or "Heat".
-          year (int): The year for which the average price is to be calculated.
-          country (str): The country for which the average price is to be calculated.
-     Returns:
-          float: The weighted average price of the specified commodity in €/MWh.
-                  If the denominator (total demand) is zero, the function will print a warning 
-                  and return None.
-     Raises:
-          KeyError: If the required columns ('Y', 'C', 'RRR', 'value') are missing in the data.
-          ValueError: If the specified commodity is not one of the allowed values.
-     Notes:
-          - The function assumes that the imported data contains columns 'Y' (year), 'C' (country), 
-            'RRR' (region), and 'value' (price or demand values).
-          - The demand values are scaled by a factor of 10^6 to match the price units.
-     """
+    """
+    Calculate the average yearly price of a specified commodity (Electricity, H2, or Heat)
+    for a given year and country, weighted by the corresponding demand, in €/PJ.
+    This function imports price and demand data from the BalmorelMR model, filters for the
+    specified year and country, and computes the weighted average price based on regional demand.
+    Args:
+        scenario_path (str): Path to the scenario data directory.
+        commodity (str): "Electricity", "H2", or "Heat".
+        year (str or int): Year for which the average price is calculated.
+        country (str): Country code.
+    Returns:
+        float: Weighted average price of the specified commodity in €/PJ,
+            or None if total demand is zero.
+    Notes:
+        - The function expects columns 'Y' (year), 'C' (country), 'RRR' (region), and 'value' in the data.
+        - Demand values are scaled by 10^6 to match price units.
+        - If total demand is zero, a warning is printed and None is returned.
+    """
 
-     
-     df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_EL_PRICE_YCR, df_H2_PRICE_YCR, df_H_PRICE_YCRA = Import_BalmorelMR(scenario_path)
-     if commodity == "Electricity":
-          df_price = df_EL_PRICE_YCR
-     elif commodity == "H2":
-          df_price = df_H2_PRICE_YCR
-     elif commodity == "Heat":
-          df_price = df_H_PRICE_YCRA
-     
-     if commodity == "Electricity":
-          df_demand = df_EL_DEMAND_YCR
-     elif commodity == "H2":
-          df_demand = df_H2_DEMAND_YCR
-     elif commodity == "Heat":
-          df_demand = df_H_DEMAND_YCRA
+    df_EL_DEMAND_YCR, df_H_DEMAND_YCRA, df_H2_DEMAND_YCR, df_EL_PRICE_YCR, df_H2_PRICE_YCR, df_H_PRICE_YCRA = Import_BalmorelMR(scenario_path)
+    if commodity == "Electricity":
+        df_price = df_EL_PRICE_YCR
+    elif commodity == "H2":
+        df_price = df_H2_PRICE_YCR
+    elif commodity == "Heat":
+        df_price = df_H_PRICE_YCRA
+    else:
+        raise ValueError(f"Unknown commodity: {commodity}")
 
+    if commodity == "Electricity":
+        df_demand = df_EL_DEMAND_YCR
+    elif commodity == "H2":
+        df_demand = df_H2_DEMAND_YCR
+    elif commodity == "Heat":
+        df_demand = df_H_DEMAND_YCRA
 
+    # Filter the DataFrame for the specified year and country
+    filtered_df_price = df_price[(df_price["Y"] == year) & (df_price["C"] == country)]
+    filtered_df_demand = df_demand[(df_demand["Y"] == year) & (df_demand["C"] == country)]
 
-     # Filter the DataFrame for the specified year and country
-     filtered_df_price = df_price[(df_price["Y"] == year) & (df_price["C"] == country)]
-     filtered_df_demand = df_demand[(df_demand["Y"] == year) & (df_demand["C"] == country)]
-     
-
-     # Merge price and demand on 'RRR' (region)
-     merged = pd.merge(filtered_df_price[['RRR', 'value']], 
-                      filtered_df_demand[['RRR', 'value']], 
-                      on='RRR', 
+    # Merge price and demand on 'RRR' (region)
+    merged = pd.merge(filtered_df_price[['RRR', 'value']],
+                      filtered_df_demand[['RRR', 'value']],
+                      on='RRR',
                       suffixes=('_price', '_demand'))
-     
-     #print(merged)
 
-     # Compute the weighted average
-     numerator = (merged['value_price'] * merged['value_demand']*10**6).sum() 
-     denominator = merged['value_demand'].sum()*3.6
-     
-     if denominator == 0:
-          print("Denominator is zero, cannot compute average price.")  
-     else:
-          avg_price = numerator / denominator
-     
-     print(f"Average {commodity} price in {country} for year {year}: {avg_price} €/PJ")
+    # Compute the weighted average
+    numerator = (merged['value_price'] * merged['value_demand'] * 10**6).sum()
+    denominator = merged['value_demand'].sum() * 3.6
 
-     return avg_price
+    if denominator == 0:
+        print("Denominator is zero, cannot compute average price.")
+        avg_price = None
+    else:
+        avg_price = numerator / denominator
 
-Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Electricity", "2050" , "GERMANY")
-# Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "H2", "2050" , "DENMARK")
-# Avg_yearly_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model", "Heat", "2050" , "DENMARK")
+    print(f"Average {commodity} price in {country} for year {year}: {avg_price} €/PJ")
 
-#%%          
+    return avg_price
+
+
+
+         
 def Avg_yearly_biomass_price (scenario_path, year, country):
     
     """
-          Calculate the average yearly biomass price for a specific country and year in €/PJ.
-          This function computes the weighted average price of biomass based on the 
-          flow of biomass and its corresponding price data. It uses data from two 
-          sources: `Import_OptiflowMR` and `Import_allendofmodel`.
-          Parameters:
-          -----------
-          scenario_path : str
-               The file path to the scenario data.
-          year : int
-               The year for which the average biomass price is to be calculated.
-          country : str
-               The country code for which the average biomass price is to be calculated.
-          Returns:
-          --------
-          float
-               The weighted average biomass price in €/GJ for the specified country and year.
-          Notes:
-          ------
-          - The function filters biomass flow data for the specified year, country, 
-            and biomass type ("Solid_Biomass").
-          - It also filters price data for specific biomass flows 
-            ("STRAW_FLOW", "WOOD_FLOW", "WOOD_PELLETS_GEN_FLOW").
-          - If the denominator (total biomass flow) is zero, the function will print 
-            a warning and avoid division by zero.
-          - The function prints intermediate merged data and the computed average price.
-          Raises:
-          -------
-          KeyError:
-               If required columns are missing in the input dataframes.
-          ValueError:
-               If the input data is not properly formatted or contains invalid values.
-          """
+    Calculate the average yearly price of biomass for a given year and country, weighted by the corresponding biomass flow, in €/PJ.
+    This function imports biomass flow and price data from the OptiflowMR and all_endofmodel models, filters for the
+    specified year and country, and computes the weighted average price based on biomass flow, including transport costs.
+    Args:
+        scenario_path (str): Path to the scenario data directory.
+        year (str or int): Year for which the average price is calculated.
+        country (str): Country code.
+    Returns:
+        float: Weighted average price of biomass in €/PJ, including transport costs,
+            or None if total biomass flow is zero.
+    Notes:
+        - The function expects columns 'Y' (year), 'CCC' (country), 'IPROCTO' (process), 'FLOW', and 'value' in the data.
+        - Biomass flow values are scaled by 10^6 to match price units.
+        - If total biomass flow is zero, a warning is printed and None is returned.
+    """
 
     df_FLOWC,_, df_VFLOWTRANS_Opti_A, _ =Import_OptiflowMR(scenario_path)
     df_SOSIBU2INDIC, df_TRANSCOST, _, _, df_TRANSDIST= Import_allendofmodel(scenario_path)
@@ -301,10 +342,28 @@ def Avg_yearly_biomass_price (scenario_path, year, country):
 
     return avg_price
 
-#avg_price= Avg_yearly_biomass_price(r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Base_Case_RightOut\model",  "2050" , "DENMARK")
 
-#%%
 def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
+    """
+    Calculate the Levelized Cost of Fuel (LCOF) for each fuel group and process pathway for a given scenario, year, and country.
+    This function imports process, cost, and flow data, computes investment, O&M, and feedstock costs, and calculates the LCOF
+    by discounting costs and fuel production over the process lifetime. Results are saved as CSV files for each fuel group.
+    Args:
+        scenario_path (str): Path to the scenario data directory.
+        fuels (list): List of tuples mapping process names to their produced fuel flows.
+        fuel_to_processes (list): List of tuples mapping fuel flow groups to process pathways.
+        year (str or int): Year for which the LCOF is calculated.
+        country (str): Country code.
+    Returns:
+        tuple: (fuel_lifetime_tables, fuel_lcof)
+            - fuel_lifetime_tables (dict): Tables of yearly costs and fuel production for each fuel group.
+            - fuel_lcof (dict): Calculated LCOF (€/GJ) for each fuel group.
+    Notes:
+        - The function expects relevant columns in the imported dataframes, including process, cost, and flow information.
+        - Feedstock prices are obtained using helper functions for electricity, hydrogen, heat, and biomass.
+        - Discount rate is taken from the imported data.
+        - Results are saved as CSV files in the same directory as the script.
+    """
     # Import data
     df_FLOWC, df_ECO_PROC_YCRAP, _, df_FLOWA = Import_OptiflowMR(scenario_path)
     _, _, df_PROCDATA, df_DISCOUNTRATE, _ = Import_allendofmodel(scenario_path)
@@ -313,18 +372,15 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
     fuel_lifetime_tables = {}
     fuel_lcof = {}
 
+    el_price = Avg_yearly_price(scenario_path, "Electricity", "2050", "DENMARK")
+    h2_price = Avg_yearly_price(scenario_path, "H2", "2050", "DENMARK")
+    heat_price = Avg_yearly_price(scenario_path, "Heat", "2050", "DENMARK")
+    biomass_price = Avg_yearly_biomass_price(scenario_path, "2050", "DENMARK")
 
-    el_price=Avg_yearly_price(scenario_path, "Electricity", "2050" , "DENMARK")
-    h2_price=Avg_yearly_price(scenario_path, "H2", "2050" , "DENMARK")
-    heat_price=Avg_yearly_price(scenario_path, "Heat", "2050" , "DENMARK")
-    biomass_price=Avg_yearly_biomass_price(scenario_path,  "2050" , "DENMARK")
-
-    #DISCOUNT RATE
-    disc_rate= df_DISCOUNTRATE.values[0]
-
+    # DISCOUNT RATE
+    disc_rate = df_DISCOUNTRATE.values[0]
 
     for fuel_group, processes in fuel_to_processes:
-        
         # LIFETIME DATA
         df_PROCDATA_lifetime = df_PROCDATA[
             (df_PROCDATA["PROC"].isin(processes)) & 
@@ -338,13 +394,13 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         # Find the maximum lifetime value
         max_lifetime = int(df_PROCDATA_lifetime["value"].max())
 
-        #INVESTMENT COST DATA
+        # INVESTMENT COST DATA
 
         # Identify cities where all processes are present for this fuel group
         # Filter df_FLOWA for year and relevant processes
         filtered = df_FLOWA[
-        (df_FLOWA["Y"] == year) &
-        (df_FLOWA["IPROCFROM"].isin(processes))
+            (df_FLOWA["Y"] == year) &
+            (df_FLOWA["IPROCFROM"].isin(processes))
         ]
 
         # Group by city and collect unique IPROCFROM values per city
@@ -352,7 +408,6 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
 
         # Keep only cities where all required processes are present
         valid_cities = cities_with_processes[cities_with_processes.apply(lambda x: set(processes).issubset(x))].index.tolist()
-
 
         # Apply this city filter to investment and fixed O&M costs
         df_ECO_PROC_YCRAP_investment = df_ECO_PROC_YCRAP[
@@ -377,23 +432,23 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         print(f"The df_ECO_PROC_YCRAP_fixedop for the fuel_group {fuel_group} is:")
         print(df_ECO_PROC_YCRAP_fixedop)
         
-        #VARIABLE O&M COST DATA
+        # VARIABLE O&M COST DATA
 
-        df_FLOWA_variableop= df_FLOWA[
-               (df_FLOWA["Y"] == year) & 
-               (df_FLOWA["IPROCFROM"].isin(processes)) & 
-               (df_FLOWA["FLOW"] == "OPERATIONCOST") &
-               (df_FLOWA["AAA"].isin(valid_cities))
-          ]
+        df_FLOWA_variableop = df_FLOWA[
+            (df_FLOWA["Y"] == year) & 
+            (df_FLOWA["IPROCFROM"].isin(processes)) & 
+            (df_FLOWA["FLOW"] == "OPERATIONCOST") &
+            (df_FLOWA["AAA"].isin(valid_cities))
+        ]
         
         print(f"The df_FLOWA_variableop for the fuel_group {fuel_group} is:")
         print(df_FLOWA_variableop)
-        #FEEDSTOCK DATA
+        # FEEDSTOCK DATA
 
-        net_consumed_electricity= 0
-        net_consumed_h2=0
-        net_consumed_heat=0
-        net_consumed_biomass=0
+        net_consumed_electricity = 0
+        net_consumed_h2 = 0
+        net_consumed_heat = 0
+        net_consumed_biomass = 0
 
         # FEEDSTOCK DATA
 
@@ -404,14 +459,14 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
             consumed_electricity = df_FLOWA.loc[
                 (df_FLOWA["Y"] == year) & 
                 (df_FLOWA["IPROCTO"] == proc) & 
-                (df_FLOWA["IPROCFROM"] == "ElecBuffer_GJ")&
+                (df_FLOWA["IPROCFROM"] == "ElecBuffer_GJ") &
                 (df_FLOWA["AAA"].isin(valid_cities))
             ]["value"].sum()
 
             produced_electricity = df_FLOWA.loc[
                 (df_FLOWA["Y"] == year) & 
                 (df_FLOWA["IPROCFROM"] == proc) & 
-                (df_FLOWA["IPROCTO"] == "EL_Opti_to_Bal_Conv")&
+                (df_FLOWA["IPROCTO"] == "EL_Opti_to_Bal_Conv") &
                 (df_FLOWA["AAA"].isin(valid_cities))
             ]["value"].sum()
 
@@ -467,7 +522,7 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         print(f"Feedstock consumption table for fuel group {fuel_group}:")
         print(feedstock_consumption)
 
-        #FUEL PRODUCTION DATA
+        # FUEL PRODUCTION DATA
 
         # Filter the fuels list to only those relevant to the current fuel_group
         filtered_pairs = [(proc, flow) for proc, flow in fuels if flow in fuel_group]
@@ -475,12 +530,12 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         # Create a mask that checks for each (proc, flow) pair
         mask = False
         for proc, flow in filtered_pairs:
-               mask |= ((df_FLOWA["IPROCFROM"] == proc) & (df_FLOWA["FLOW"] == flow) & (df_FLOWA["AAA"].isin(valid_cities)))
+            mask |= ((df_FLOWA["IPROCFROM"] == proc) & (df_FLOWA["FLOW"] == flow) & (df_FLOWA["AAA"].isin(valid_cities)))
 
         # Now select with additional conditions
         yearly_fuel_production = df_FLOWA.loc[
-        (df_FLOWA["Y"] == year) &
-        mask
+            (df_FLOWA["Y"] == year) &
+            mask
         ]["value"].sum()
 
         # Create a table: rows = 0 to max_lifetime (inclusive), 8 empty columns
@@ -502,92 +557,70 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         table["Year"] = range(max_lifetime + 1)
 
         for t in range(max_lifetime + 1):
-             
-             #TOTAL INVESTMENT COST COLUMN
-             
-             if t == 0:
-                  # For the first year, use the investment cost
-                  table.at[t, "TIC [M€]"] = df_ECO_PROC_YCRAP_investment["value"].sum()
-             else:
-                  table.at[t, "TIC [M€]"] = 0
-             
-             for proc in processes:
-                    try:
-                         # Try to get the lifetime for this process
-                         lifetime = df_PROCDATA_lifetime.loc[df_PROCDATA_lifetime["PROC"] == proc, "value"].values[0]
-                         
-                         # If current year is lifetime + 1, add investment
-                         if t == lifetime + 1:
-                              investment_value = df_ECO_PROC_YCRAP_investment.loc[df_ECO_PROC_YCRAP_investment["PROC"] == proc, "value"].values[0]
-                              
-                         
-                              table.at[t, "TIC [M€]"] += investment_value
-                    
-                    except IndexError:
-                         print(f"Warning: Process {proc} not found in lifetime data.")
-             
-             #O&M COST COLUMN
+            # TOTAL INVESTMENT COST COLUMN
+            if t == 0:
+                # For the first year, use the investment cost
+                table.at[t, "TIC [M€]"] = df_ECO_PROC_YCRAP_investment["value"].sum()
+            else:
+                table.at[t, "TIC [M€]"] = 0
 
-             if t==0:
-                  table.at[t, "O&M [M€]"] = 0
-             else:
-                  table.at[t, "O&M [M€]"] = df_ECO_PROC_YCRAP_fixedop["value"].sum() + df_FLOWA_variableop["value"].sum()
+            for proc in processes:
+                try:
+                    # Try to get the lifetime for this process
+                    lifetime = df_PROCDATA_lifetime.loc[df_PROCDATA_lifetime["PROC"] == proc, "value"].values[0]
+                    # If current year is lifetime + 1, add investment
+                    if t == lifetime + 1:
+                        investment_value = df_ECO_PROC_YCRAP_investment.loc[df_ECO_PROC_YCRAP_investment["PROC"] == proc, "value"].values[0]
+                        table.at[t, "TIC [M€]"] += investment_value
+                except IndexError:
+                    print(f"Warning: Process {proc} not found in lifetime data.")
 
-            #FUEL COST COLUMN
-             if t==0:
-                 table.at[t, "FUEL COST [M€]"] = 0
-             else:
-                  table.at[t, "FUEL COST [M€]"] = (net_consumed_electricity * el_price + net_consumed_h2 * h2_price + net_consumed_heat * heat_price + net_consumed_biomass * biomass_price) * 10**-6
+            # O&M COST COLUMN
+            if t == 0:
+                table.at[t, "O&M [M€]"] = 0
+            else:
+                table.at[t, "O&M [M€]"] = df_ECO_PROC_YCRAP_fixedop["value"].sum() + df_FLOWA_variableop["value"].sum()
 
-            #TOTAL YEARLY COST COLUMN
-                 
-             table.at[t, "TOT YEARLY COST [M€]"] = table.at[t, "TIC [M€]"] + table.at[t, "O&M [M€]"] + table.at[t, "FUEL COST [M€]"]
-            
-            #TOTAL YEARLY COST ACTUALIZED COLUMN
+            # FUEL COST COLUMN
+            if t == 0:
+                table.at[t, "FUEL COST [M€]"] = 0
+            else:
+                table.at[t, "FUEL COST [M€]"] = (net_consumed_electricity * el_price + net_consumed_h2 * h2_price + net_consumed_heat * heat_price + net_consumed_biomass * biomass_price) * 10**-6
 
-             table.at[t, "TOT YEARLY COST ACT [M€]"] = table.at[t, "TOT YEARLY COST [M€]"] / ((1 + disc_rate) ** t)
+            # TOTAL YEARLY COST COLUMN
+            table.at[t, "TOT YEARLY COST [M€]"] = table.at[t, "TIC [M€]"] + table.at[t, "O&M [M€]"] + table.at[t, "FUEL COST [M€]"]
 
-            #TOTAL YEARLY FUEL PRODUCTION COLUMN
-             if t==0:
-                  table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] = 0
-             else:
-                  table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] = yearly_fuel_production 
+            # TOTAL YEARLY COST ACTUALIZED COLUMN
+            table.at[t, "TOT YEARLY COST ACT [M€]"] = table.at[t, "TOT YEARLY COST [M€]"] / ((1 + disc_rate) ** t)
 
-            #TOTAL YEARLY FUEL PRODUCTION ACTUALIZED COLUMN
-             table.at[t, "YEARLY FUEL PRODUCTION ACT [PJ]"] = table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] / ((1 + disc_rate) ** t)
+            # TOTAL YEARLY FUEL PRODUCTION COLUMN
+            if t == 0:
+                table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] = 0
+            else:
+                table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] = yearly_fuel_production
 
-        lcof= (table["TOT YEARLY COST ACT [M€]"].sum() / table["YEARLY FUEL PRODUCTION ACT [PJ]"].sum()) 
+            # TOTAL YEARLY FUEL PRODUCTION ACTUALIZED COLUMN
+            table.at[t, "YEARLY FUEL PRODUCTION ACT [PJ]"] = table.at[t, "YEARLY FUEL PRODUCTION [PJ]"] / ((1 + disc_rate) ** t)
+
+        lcof = (table["TOT YEARLY COST ACT [M€]"].sum() / table["YEARLY FUEL PRODUCTION ACT [PJ]"].sum())
 
         # Save the table for this fuel group
         fuel_lifetime_tables[tuple(fuel_group)] = table
         fuel_lcof[tuple(fuel_group)] = lcof
 
-        
-     #    print(f"Table for fuel group {fuel_group} (max lifetime {max_lifetime} years):")
-        
-     #    print(table)
+        print(f"LCOF for fuel group {fuel_group}: {lcof} €/GJ")
 
         # Save the table as a CSV file
         fuel_group_name = "_".join(fuel_group)  # Create a name from the fuel group
         csv_file_path = os.path.join(os.path.dirname(__file__), f"{fuel_group_name}.csv")
         table.to_csv(csv_file_path, index=False)
 
-        
-
-        print(f"LCOF for fuel group {fuel_group}: {lcof} €/GJ")
-
-
     return fuel_lifetime_tables, fuel_lcof
 
 
 #%%
 
-# Table of fixed LCOF values for specific fossil fuels
-fixed_lcof_values = {
-    "DIESELFLOW": 45.63888889,
-    "MDOFLOW": 18.38785047,
-    "KEROSENEFLOW": 27.19546742
-}
+
 
 # Calculate LCOF and store results
 first_try_table, first_try_lcof = LCOF_calculation(
@@ -600,20 +633,11 @@ first_try_table, first_try_lcof = LCOF_calculation(
 
 # Overwrite LCOF for fossil fuels if present in fuel_to_processes
 for fuel_group, _ in fuel_to_processes:
-    for fossil_fuel, lcof_value in fixed_lcof_values.items():
+    for fossil_fuel, lcof_value in fossil_fuels_costs.items():
         if fossil_fuel in fuel_group:
             # Assign the fixed value for this fuel group
             first_try_lcof[tuple([fossil_fuel])] = lcof_value
 
-name_map = {
-    "Ammonia_Eff": "AMMONIA_FLOW",
-    "BioGasoline_Eff": "BIOGASOLINEFLOW",
-    "EME_Gasoline_Eff": "EME_GASOLINE_FLOW",
-    "EME_LPG_Eff": "EME_LPG_FLOW",
-    "BioJet_Eff": "BIOJETFLOW",
-    "EME_Jet_Eff": "EME_JET_FLOW",
-    "KeroseneSource":"KEROSENEFLOW"
-}
 
 sectors= { "Sea_fuels_sum":"Maritime",
         "Air_fuels_sum":"Aviation",
@@ -621,8 +645,7 @@ sectors= { "Sea_fuels_sum":"Maritime",
     }
 
 def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country, scenario_name):
-    import plotly.graph_objects as go
-    import pandas as pd
+
 
     # Import data
     df_FLOWC, _, _, _ = Import_OptiflowMR(scenario_path)
@@ -772,30 +795,6 @@ def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country, s
     return fig
 
 
-
-
-
-
-
-
-#%%
-
-fuel_group_name_map = {
-    ("AMMONIA_FLOW",): "Ammonia",
-    ("BIOGASOLINEFLOW_BJ_H2", "BIOJETFLOW_H2"): "Biofuels with H₂",
-    ("BIOGASOLINEFLOW_BJ_TG", "BIOJETFLOW_TG"): "Biofuels ",
-    ("EME_GASOLINE_FLOW", "EME_JET_FLOW", "EME_LPG_FLOW"): "E-Methanol Derived Fuels",
-    ("KEROSENEFLOW"): "Kerosene"
-}
-
-# Normalized name map (can expand this as needed)
-normalized_name_map = {
-     "AMMONIA_FLOW": "Ammonia",
-     "BIOGASOLINEFLOW_BJ_H2": "Biofuels with H₂",
-     "BIOGASOLINEFLOW_BJ_TG": "Biofuels",
-     "EME_GASOLINE_FLOW": "E-Methanol Derived Fuels",
-     "KEROSENEFLOW": "Kerosene"
-}
 # Normalize keys
 def normalize_key(k):
      if isinstance(k, (tuple, list)):
@@ -899,70 +898,4 @@ fig= LCOF_bysector(
 )
 #fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\LCOF_bysector_{scenario[0][0]}.pdf", engine='kaleido')
 
-
-#%%
-# import pandas as pd
-# import plotly.express as px
-# from plotly.subplots import make_subplots
-# import plotly.graph_objects as go
-
-# # Create the DataFrame
-# data = {
-#     'Category': ['Aviation Demand', 'Road Demand', 'Maritime Demand', 'Grand Total'],
-#     'Biofuels Share [%]': [100.00, 100.00, 21.22, 58.18],
-#     'E Fuels Share [%]': [0.00, 0.00, 78.78, 41.82]
-# }
-
-# df = pd.DataFrame(data)
-
-# # Define colors
-# colors = ['#2ecc71', '#1baee3']  # greenish for Biofuels, teal for E-Fuels
-
-# # Create subplot layout: 1 row x 4 columns
-# fig = make_subplots(
-#     rows=1, cols=4,
-#     specs=[[{'type':'domain'}, {'type':'domain'}, {'type':'domain'}, {'type':'domain'}]],
-#     subplot_titles=list(df['Category'])
-# )
-
-# # Add pie charts to each subplot
-# for i, row in df.iterrows():
-#     fig.add_trace(
-#         go.Pie(
-#             labels=['Biofuels', 'E-Fuels'],
-#             values=[row['Biofuels Share [%]'], row['E Fuels Share [%]']],
-#             marker=dict(colors=colors),
-#             name=row['Category'],
-#             textfont=dict(family='Arial', color='black'),
-#             hole=0.3,
-#             showlegend=(i == 0)  # Show legend only once
-#         ),
-#         row=1, col=i + 1
-#     )
-
-# # Update layout for tight vertical space
-# fig.update_layout(
-#     height=300,  # Reduce vertical height
-#     width=1200,  # Wider layout to fit 4 pies side by side
-#     font=dict(family='Arial', color='black'),
-#     legend=dict(
-#         orientation='h',
-#         x=0.5,
-#         y=-0.20,
-#         xanchor='center',
-#         bordercolor='black',
-#         borderwidth=1,
-#         font=dict(family='Arial', color='black')
-#     ),
-#     margin=dict(l=20, r=20, t=30, b=80)  # Reduce top and bottom margin
-# )
-
-# # Move subplot titles closer to the pies
-# fig.update_annotations(dict(yshift=10))
-
-# fig.show()
-# fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsPie_{scenario[0][0]}.pdf", engine='kaleido')
-# #%%
-
-#%%
 
