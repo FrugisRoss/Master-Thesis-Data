@@ -108,7 +108,10 @@ normalized_name_map = {
      "BIOGASOLINEFLOW_BJ_H2": "Biofuels with H₂",
      "BIOGASOLINEFLOW_BJ_TG": "Biofuels",
      "EME_GASOLINE_FLOW": "E-Methanol Derived Fuels",
-     "KEROSENEFLOW": "Kerosene"
+     "KEROSENEFLOW": "Kerosene",
+     "MDOFLOW": "MDO",
+     "DIESELFLOW": "Diesel"
+
 }
 
 sectors= { "Sea_fuels_sum":"Maritime",
@@ -835,14 +838,13 @@ def plot_lcof_bar(fuels_lcof, normalized_name_map, scenario_name):
         x_labels.append(readable)
         y_values.append(v)
 
-        # Color assignment and legend label
-        if "KEROSENE" in norm_key.upper():
+        if any(fossil in norm_key.upper() for fossil in ["KEROSENE", "MDO", "DIESEL"]):
             bar_colors.append("#e31b1b")  # Red
             legend_labels.append("Fossil Fuel Price")
         else:
             bar_colors.append("#e3a41b")  # Orange
             legend_labels.append("LCOF")
-
+            
     # Create Plotly bar chart with custom legend
     fig = go.Figure()
 
