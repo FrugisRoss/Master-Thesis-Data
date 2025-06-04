@@ -52,7 +52,13 @@ scenario = [
      ]
 
 
-save_pdf = False
+#If you want to save the results as PDF files, set this variable to True and specify the save paths below.
+save_pdf = True
+save_path_lcof_by_sector =rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\LCOF_bysector_{scenario[0][0]}.pdf"
+save_path_lcof_by_fuel = rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_{scenario[0][0]}.pdf"
+
+
+#------------ To be modified by the user if the Optiflow model changes -------------------
 
 #Mapping of fuel flows to processes' pathways that produce them.
 #Must be modified according to the processes defined in the Optiflow model.
@@ -844,7 +850,7 @@ def plot_lcof_bar(fuels_lcof, normalized_name_map, scenario_name):
         else:
             bar_colors.append("#e3a41b")  # Orange
             legend_labels.append("LCOF")
-            
+
     # Create Plotly bar chart with custom legend
     fig = go.Figure()
 
@@ -919,16 +925,18 @@ def plot_lcof_bar(fuels_lcof, normalized_name_map, scenario_name):
         yaxis=dict(showline=True, mirror=True),
     )
 
-    # Add scenario name as a title
-    fig.update_layout(
-        title=dict(
-            text=f"{scenario_name}",
-            x=0.5,
-            y=0.90,
-            xanchor='center',
-            yanchor='top',
-            font=dict(size=20, family="DejaVu Sans, sans-serif", color="black")
-        )
+    # Center the scenario name over the plot area, not the plot+legend area
+    # This is achieved by using xref='paper' and x=0.5, and setting xanchor='center'
+    fig.add_annotation(
+        text=f"{scenario_name}",
+        x=0.5,
+        y=1.08,
+        xref="paper",
+        yref="paper",
+        showarrow=False,
+        font=dict(size=20, family="DejaVu Sans, sans-serif", color="black"),
+        xanchor="center",
+        yanchor="top"
     )
 
     fig.show()
@@ -959,8 +967,9 @@ fig = plot_lcof_bar(fuels_lcof,
                     scenario[0][0])
 
 
-if save_pdf=='True':
-    fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_{scenario[0][0]}.pdf", engine='kaleido')
+if save_pdf== True:
+    
+    fig.write_image(save_path_lcof_by_fuel, engine='kaleido')
 
 fig= plot_LCOF_bysector(
     scenario[0][1], 
@@ -972,7 +981,8 @@ fig= plot_LCOF_bysector(
     scenario[0][0]
 )
 
-if save_pdf=='True':
-    fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\LCOF_bysector_{scenario[0][0]}.pdf", engine='kaleido')
+if save_pdf==True:
+    
+    fig.write_image(save_path_lcof_by_sector, engine='kaleido')
 
 
