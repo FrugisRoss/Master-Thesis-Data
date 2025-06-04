@@ -1,4 +1,4 @@
 /config
 *.csv
 LCOF/*.csv
-LCOF/*.png
+#LCOF/*.png
