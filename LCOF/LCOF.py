@@ -110,6 +110,10 @@ normalized_name_map = {
      "KEROSENEFLOW": "Kerosene"
 }
 
+sectors= { "Sea_fuels_sum":"Maritime",
+        "Air_fuels_sum":"Aviation",
+        "Road_fuels_sum":"Road",
+    }
 
 #-----------End of user modification section-------------------
 
@@ -355,9 +359,7 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         year (str or int): Year for which the LCOF is calculated.
         country (str): Country code.
     Returns:
-        tuple: (fuel_lifetime_tables, fuel_lcof)
-            - fuel_lifetime_tables (dict): Tables of yearly costs and fuel production for each fuel group.
-            - fuel_lcof (dict): Calculated LCOF (€/GJ) for each fuel group.
+        fuel_lcof (dict): Calculated LCOF (€/GJ) for each fuel group.
     Notes:
         - The function expects relevant columns in the imported dataframes, including process, cost, and flow information.
         - Feedstock prices are obtained using helper functions for electricity, hydrogen, heat, and biomass.
@@ -615,36 +617,27 @@ def LCOF_calculation(scenario_path, fuels, fuel_to_processes, year, country):
         csv_file_path = os.path.join(os.path.dirname(__file__), f"{fuel_group_name}.csv")
         table.to_csv(csv_file_path, index=False)
 
-    return fuel_lifetime_tables, fuel_lcof
-
-
-#%%
+    return fuel_lifetime_tables,fuel_lcof
 
 
 
-# Calculate LCOF and store results
-first_try_table, first_try_lcof = LCOF_calculation(
-    scenario[0][1], 
-    fuels, 
-    fuel_to_processes, 
-    "2050", 
-    "DENMARK"
-)
 
-# Overwrite LCOF for fossil fuels if present in fuel_to_processes
-for fuel_group, _ in fuel_to_processes:
-    for fossil_fuel, lcof_value in fossil_fuels_costs.items():
-        if fossil_fuel in fuel_group:
-            # Assign the fixed value for this fuel group
-            first_try_lcof[tuple([fossil_fuel])] = lcof_value
-
-
-sectors= { "Sea_fuels_sum":"Maritime",
-        "Air_fuels_sum":"Aviation",
-        "Road_fuels_sum":"Road",
-    }
-
-def LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country, scenario_name):
+def plot_LCOF_bysector(scenario_path, lcof_fuels, sectors, name_map, year, country, scenario_name):
+    """
+    Plots the Levelized Cost of Fuel (LCOF) by transport sector for a given scenario, year, and country.
+    This function imports fuel flow data, combines specific fuel groups if present, calculates the weighted average LCOF for each sector, 
+    and generates a bar plot showing the LCOF for each transport sector. The plot is customized with axis labels, title, and formatting.
+    Args:
+        scenario_path (str): Path to the scenario data directory.
+        lcof_fuels (dict): Dictionary mapping fuel group tuples to their LCOF values.
+        sectors (dict): Dictionary mapping sector codes to sector names.
+        name_map (dict): Dictionary mapping fuel codes to readable fuel names.
+        year (int): The year for which to plot the LCOF.
+        country (str): The country code to filter the data.
+        scenario_name (str): Name of the scenario to display as the plot title.
+    Returns:
+        plotly.graph_objs._figure.Figure: The generated Plotly figure object.
+    """
 
 
     # Import data
@@ -801,95 +794,132 @@ def normalize_key(k):
           k = k[0]
      return k.strip().upper()
 
-# Prepare plot data
-x_labels = []
-y_values = []
+def plot_lcof_bar(fuels_lcof, normalized_name_map, scenario_name):
+        """
+        Plots a bar chart of LCOF values for each fuel group, excluding those with LCOF == 0.
 
-for k, v in first_try_lcof.items():
-    norm_key = normalize_key(k)
-    readable = normalized_name_map.get(norm_key)
-    if not readable:
-       print(f"⚠️ Warning: Unmapped key '{norm_key}' — using fallback label.")
-       readable = norm_key.replace("_", " ").title()
-    x_labels.append(readable)
-    y_values.append(v)
+        Args:
+            fuels_lcof (dict): Dictionary mapping fuel group keys to LCOF values.
+            normalized_name_map (dict): Mapping from normalized fuel group keys to readable names.
+            scenario_name (str): Title for the plot.
 
-# Create Plotly bar chart
-fig = go.Figure()
+        Returns:
+            plotly.graph_objs._figure.Figure: The generated Plotly figure object.
+        """
+        def normalize_key(k):
+            if isinstance(k, (tuple, list)):
+                k = k[0]
+            return k.strip().upper()
 
-fig.add_trace(go.Bar(
-    x=x_labels,
-    y=y_values,
-    marker=dict(color='#e3a41b'),
-    name="LCOF"
-))
+        # Prepare plot data, only include fuels with LCOF != 0 and not None/nan
+        x_labels = []
+        y_values = []
 
-fig.update_layout(
-    xaxis=dict(
-       title="Fuel Group",
-       tickangle=0,  # Ensure labels are not tilted
-       showline=True,
-       linewidth=1,
-       linecolor='black',
-       tickfont=dict(size=14)  # Increased font size for fuel categories
-    ),
-    yaxis=dict(
-       title="LCOF (€/GJ)",
-       range=[0, 30],  # Set y-axis range to go up to 25
-       showgrid=True,
-       gridcolor='lightgray',
-       zeroline=True,
-       zerolinecolor='lightgray',
-       zerolinewidth=0.6,
-       linecolor='black',
-       linewidth=1,
-       tickfont=dict(size=12)
-    ),
-    font=dict(
-       family="DejaVu Sans, sans-serif",
-       size=14,
-       color="black"
-    ),
-    plot_bgcolor='white',
-    paper_bgcolor='white',
-    margin=dict(l=60, r=30, t=80, b=80),
-    showlegend=False,  # Ensure the legend is displayed
+        for k, v in fuels_lcof.items():
+            if v is None or v == 0 or (isinstance(v, float) and np.isnan(v)):
+                continue
+            norm_key = normalize_key(k)
+            readable = normalized_name_map.get(norm_key)
+            if not readable:
+                print(f"⚠️ Warning: Unmapped key '{norm_key}' — using fallback label.")
+                readable = norm_key.replace("_", " ").title()
+            x_labels.append(readable)
+            y_values.append(v)
+
+        # Create Plotly bar chart
+        fig = go.Figure()
+
+        fig.add_trace(go.Bar(
+            x=x_labels,
+            y=y_values,
+            marker=dict(color='#e3a41b'),
+            name="LCOF"
+        ))
+
+        fig.update_layout(
+            xaxis=dict(
+                title="Fuel Group",
+                tickangle=0,
+                showline=True,
+                linewidth=1,
+                linecolor='black',
+                tickfont=dict(size=14)
+            ),
+            yaxis=dict(
+                title="LCOF (€/GJ)",
+                range=[0, 30],  # Set y-axis range to go up to 30
+                showgrid=True,
+                gridcolor='lightgray',
+                zeroline=True,
+                zerolinecolor='lightgray',
+                zerolinewidth=0.6,
+                linecolor='black',
+                linewidth=1,
+                tickfont=dict(size=12)
+            ),
+            font=dict(
+                family="DejaVu Sans, sans-serif",
+                size=14,
+                color="black"
+            ),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            margin=dict(l=100, r=100, t=100, b=100),
+            showlegend=False,
+            autosize=False,
+            width=800,
+            height=600,
+        )
+
+        # Add a full rectangle border around the plot
+        fig.update_layout(
+            xaxis=dict(showline=True, mirror=True),
+            yaxis=dict(showline=True, mirror=True),
+        )
+
+        # Add scenario name as a title
+        fig.update_layout(
+            title=dict(
+                text=f"{scenario_name}",
+                x=0.5,
+                y=0.90,
+                xanchor='center',
+                yanchor='top',
+                font=dict(size=20, family="DejaVu Sans, sans-serif", color="black")
+            )
+        )
+
+        fig.show()
+        return fig
+
+
+# Calculate LCOF and store results
+fuel_lifetime_tables,fuels_lcof = LCOF_calculation(
+    scenario[0][1], 
+    fuels, 
+    fuel_to_processes, 
+    "2050", 
+    "DENMARK"
 )
 
-# Center the plot in the figure
-fig.update_layout(
-    autosize=False,
-    width=800,  # Adjust width as needed
-    height=600,  # Adjust height as needed
-    margin=dict(l=100, r=100, t=100, b=100),  # Center the plot by adjusting margins
-)
-
-# Add a full rectangle border around the plot
-fig.update_layout(
-    xaxis=dict(showline=True, mirror=True),  # Mirror x-axis lines
-    yaxis=dict(showline=True, mirror=True),  # Mirror y-axis lines
-)
-
-# Add scenario name as a title
-fig.update_layout(
-    title=dict(
-       text=f"{scenario[0][0]}",
-       x=0.5,
-       y=0.90,
-       xanchor='center',
-       yanchor='top',
-       font=dict(size=20, family="DejaVu Sans, sans-serif", color="black")
-    )
-)
+# Overwrite LCOF for fossil fuels if present in fuel_to_processes
+for fuel_group, _ in fuel_to_processes:
+    for fossil_fuel, lcof_value in fossil_fuels_costs.items():
+        if fossil_fuel in fuel_group:
+            # Assign the fixed value for this fuel group
+            fuels_lcof[tuple([fossil_fuel])] = lcof_value
 
 
-fig.show()
+fig = plot_lcof_bar(fuels_lcof,
+                    normalized_name_map, 
+                    scenario[0][0])
+
 
 #fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_{scenario[0][0]}.pdf", engine= 'kaleido') 
 
-fig= LCOF_bysector(
+fig= plot_LCOF_bysector(
     scenario[0][1], 
-    first_try_lcof, 
+    fuels_lcof, 
     sectors, 
     name_map, 
     "2050", 
