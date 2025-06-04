@@ -39,8 +39,8 @@ scenario = [
    # ("BIODIVERSITY BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf\model"),
    
     # ("BIODIVERSITY FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL\model"),
-    ("BIODIVERSITY NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_nowoodpellets\model"),
-    #  ("BIODIVERSITY NWI FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL_nowoodpellets\model"),
+    #("BIODIVERSITY NWI", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_nowoodpellets\model"),
+      ("BIODIVERSITY NWI FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL_nowoodpellets\model"),
     #("BIODIVERSITY BASELINE", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf\model"),
    
     #("BIODIVERSITY FOSSIL", r"C:\Users\sigur\OneDrive\DTU\Run on HPC Polimi\Biodiversity_Case_RLC_nopf_FOSSIL\model"),
@@ -52,6 +52,7 @@ scenario = [
      ]
 
 
+save_pdf = False
 
 #Mapping of fuel flows to processes' pathways that produce them.
 #Must be modified according to the processes defined in the Optiflow model.
@@ -795,102 +796,141 @@ def normalize_key(k):
      return k.strip().upper()
 
 def plot_lcof_bar(fuels_lcof, normalized_name_map, scenario_name):
-        """
-        Plots a bar chart of LCOF values for each fuel group, excluding those with LCOF == 0.
+    """
+    Plots a bar chart of LCOF values for each fuel group, excluding those with LCOF == 0.
 
-        Args:
-            fuels_lcof (dict): Dictionary mapping fuel group keys to LCOF values.
-            normalized_name_map (dict): Mapping from normalized fuel group keys to readable names.
-            scenario_name (str): Title for the plot.
+    Args:
+        fuels_lcof (dict): Dictionary mapping fuel group keys to LCOF values.
+        normalized_name_map (dict): Mapping from normalized fuel group keys to readable names.
+        scenario_name (str): Title for the plot.
 
-        Returns:
-            plotly.graph_objs._figure.Figure: The generated Plotly figure object.
-        """
-        def normalize_key(k):
-            if isinstance(k, (tuple, list)):
-                k = k[0]
-            return k.strip().upper()
+    Returns:
+        plotly.graph_objs._figure.Figure: The generated Plotly figure object.
+    """
+    def normalize_key(k):
+        if isinstance(k, (tuple, list)):
+            k = k[0]
+        return k.strip().upper()
 
-        # Prepare plot data, only include fuels with LCOF != 0 and not None/nan
-        x_labels = []
-        y_values = []
+    # Prepare plot data, only include fuels with LCOF != 0 and not None/nan
+    x_labels = []
+    y_values = []
+    bar_colors = []
+    legend_labels = []
 
-        for k, v in fuels_lcof.items():
-            if v is None or v == 0 or (isinstance(v, float) and np.isnan(v)):
-                continue
-            norm_key = normalize_key(k)
-            readable = normalized_name_map.get(norm_key)
-            if not readable:
-                print(f"⚠️ Warning: Unmapped key '{norm_key}' — using fallback label.")
-                readable = norm_key.replace("_", " ").title()
-            x_labels.append(readable)
-            y_values.append(v)
+    for k, v in fuels_lcof.items():
+        if v == 0 or v is None or (isinstance(v, float) and (np.isnan(v) or abs(v) < 1e-8)):
+            continue
+        norm_key = normalize_key(k)
 
-        # Create Plotly bar chart
-        fig = go.Figure()
+        readable = None
+        for key, name in normalized_name_map.items():
+            if key in norm_key:
+                readable = name
+                break
+        if not readable:
+            print(f"Warning: Unmapped key '{norm_key}' — using fallback label.")
+            readable = norm_key.replace("_", " ").title()
 
-        fig.add_trace(go.Bar(
-            x=x_labels,
-            y=y_values,
-            marker=dict(color='#e3a41b'),
-            name="LCOF"
-        ))
+        x_labels.append(readable)
+        y_values.append(v)
 
-        fig.update_layout(
-            xaxis=dict(
-                title="Fuel Group",
-                tickangle=0,
-                showline=True,
-                linewidth=1,
-                linecolor='black',
-                tickfont=dict(size=14)
-            ),
-            yaxis=dict(
-                title="LCOF (€/GJ)",
-                range=[0, 30],  # Set y-axis range to go up to 30
-                showgrid=True,
-                gridcolor='lightgray',
-                zeroline=True,
-                zerolinecolor='lightgray',
-                zerolinewidth=0.6,
-                linecolor='black',
-                linewidth=1,
-                tickfont=dict(size=12)
-            ),
-            font=dict(
-                family="DejaVu Sans, sans-serif",
-                size=14,
-                color="black"
-            ),
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            margin=dict(l=100, r=100, t=100, b=100),
-            showlegend=False,
-            autosize=False,
-            width=800,
-            height=600,
+        # Color assignment and legend label
+        if "KEROSENE" in norm_key.upper():
+            bar_colors.append("#e31b1b")  # Red
+            legend_labels.append("Fossil Fuel Price")
+        else:
+            bar_colors.append("#e3a41b")  # Orange
+            legend_labels.append("LCOF")
+
+    # Create Plotly bar chart with custom legend
+    fig = go.Figure()
+
+    # Plot LCOF bars (orange)
+    for i in range(len(x_labels)):
+        if legend_labels[i] == "LCOF":
+            fig.add_trace(go.Bar(
+                x=[x_labels[i]],
+                y=[y_values[i]],
+                marker=dict(color=bar_colors[i]),
+                name="LCOF",
+                showlegend=not any(t.name == "LCOF" for t in fig.data)
+            ))
+        else:
+            fig.add_trace(go.Bar(
+                x=[x_labels[i]],
+                y=[y_values[i]],
+                marker=dict(color=bar_colors[i]),
+                name="Fossil Fuel Price",
+                showlegend=not any(t.name == "Fossil Fuel Price" for t in fig.data)
+            ))
+
+    fig.update_layout(
+        xaxis=dict(
+            title="Fuel Group",
+            tickangle=0,
+            showline=True,
+            linewidth=1,
+            linecolor='black',
+            tickfont=dict(size=14)
+        ),
+        yaxis=dict(
+            title="[€/GJ]",
+            range=[0, 30],  # Set y-axis range to go up to 30
+            showgrid=True,
+            gridcolor='lightgray',
+            zeroline=True,
+            zerolinecolor='lightgray',
+            zerolinewidth=0.6,
+            linecolor='black',
+            linewidth=1,
+            tickfont=dict(size=12)
+        ),
+        font=dict(
+            family="DejaVu Sans, sans-serif",
+            size=14,
+            color="black"
+        ),
+        plot_bgcolor='white',
+        paper_bgcolor='white',
+        margin=dict(l=100, r=220, t=100, b=100),  # Extra right margin for legend
+        showlegend=True,
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.05,
+            font=dict(size=14),
+            bordercolor="black",
+            borderwidth=2,
+            bgcolor="white"
+        ),
+        autosize=False,
+        width=900,
+        height=600,
+    )
+
+    # Add a full rectangle border around the plot
+    fig.update_layout(
+        xaxis=dict(showline=True, mirror=True),
+        yaxis=dict(showline=True, mirror=True),
+    )
+
+    # Add scenario name as a title
+    fig.update_layout(
+        title=dict(
+            text=f"{scenario_name}",
+            x=0.5,
+            y=0.90,
+            xanchor='center',
+            yanchor='top',
+            font=dict(size=20, family="DejaVu Sans, sans-serif", color="black")
         )
+    )
 
-        # Add a full rectangle border around the plot
-        fig.update_layout(
-            xaxis=dict(showline=True, mirror=True),
-            yaxis=dict(showline=True, mirror=True),
-        )
-
-        # Add scenario name as a title
-        fig.update_layout(
-            title=dict(
-                text=f"{scenario_name}",
-                x=0.5,
-                y=0.90,
-                xanchor='center',
-                yanchor='top',
-                font=dict(size=20, family="DejaVu Sans, sans-serif", color="black")
-            )
-        )
-
-        fig.show()
-        return fig
+    fig.show()
+    return fig
 
 
 # Calculate LCOF and store results
@@ -905,7 +945,9 @@ fuel_lifetime_tables,fuels_lcof = LCOF_calculation(
 # Overwrite LCOF for fossil fuels if present in fuel_to_processes
 for fuel_group, _ in fuel_to_processes:
     for fossil_fuel, lcof_value in fossil_fuels_costs.items():
-        if fossil_fuel in fuel_group:
+        # Import df_FLOWC to check if fossil_fuel is present in the 'FLOW' column
+        df_FLOWC, _, _, _ = Import_OptiflowMR(scenario[0][1])
+        if fossil_fuel in df_FLOWC['FLOW'].values:
             # Assign the fixed value for this fuel group
             fuels_lcof[tuple([fossil_fuel])] = lcof_value
 
@@ -915,7 +957,8 @@ fig = plot_lcof_bar(fuels_lcof,
                     scenario[0][0])
 
 
-#fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_{scenario[0][0]}.pdf", engine= 'kaleido') 
+if save_pdf=='True':
+    fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\FuelsLCOE_{scenario[0][0]}.pdf", engine='kaleido')
 
 fig= plot_LCOF_bysector(
     scenario[0][1], 
@@ -926,6 +969,8 @@ fig= plot_LCOF_bysector(
     "DENMARK", 
     scenario[0][0]
 )
-#fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\LCOF_bysector_{scenario[0][0]}.pdf", engine='kaleido')
+
+if save_pdf=='True':
+    fig.write_image(rf"C:\Users\sigur\OneDrive\DTU\Pictures for report polimi\Results\LCOF_bysector_{scenario[0][0]}.pdf", engine='kaleido')
 
 
